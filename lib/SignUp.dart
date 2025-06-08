@@ -57,26 +57,7 @@ class _SignupState extends State<Signup> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: 40),
-                    TextField(
-                      decoration: InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 12,
-                        ),
-                        floatingLabelBehavior: FloatingLabelBehavior.always,
-                        labelText: "Full Name",
-                        labelStyle: GoogleFonts.poppins(
-                          color: const Color(0xFF14213D),
-                          fontWeight: FontWeight.bold,
-                        ),
-                        hintText: "Enter your fullname",
-                        hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+
                     TextField(
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
