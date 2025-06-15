@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';  // add supabase import
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // dotenv import
 import 'Views/login.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Load .env file
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Supabase using environment variables
   await Supabase.initialize(
-    url: 'https://isgegstsnmmtqfgjaspm.supabase.co',    // replace with your URL
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzZ2Vnc3Rzbm1tdHFmZ2phc3BtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk4NjY2NDQsImV4cCI6MjA2NTQ0MjY0NH0.YGT-Y32wGRauyb0hfFQugs9np55LxPg9zncZ9xYK7xU',                      // replace with your anon key
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   runApp(const MyApp());
