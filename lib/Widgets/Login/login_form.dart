@@ -1,11 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:murir_tin/Models/model.dart';
-import 'dart:convert';
-import 'package:http/http.dart';
-import 'package:murir_tin/Widgets/widgets.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:murir_tin/Views/views.dart';
 
 class LoginForm extends StatefulWidget {
@@ -19,99 +14,52 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  final loginUrl = "http://localhost:8000/auth/login/";
-
-  late List<FormTextFieldModel> _fields;
-
   Future<void> _login() async {
-    String email = _emailController.text;
-    String password = _passwordController.text;
+    final supabase = Supabase.instance.client;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    UserLoginRequest loginRequest = UserLoginRequest(
-      email: email,
-      password: password,
-    );
-
-    String payLoad = jsonEncode(loginRequest.toJson());
+    if (email.isEmpty || password.isEmpty) {
+      _showErrorDialog('Please enter both email and password.');
+      return;
+    }
 
     try {
-      Response response = await post(
-        Uri.parse(loginUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: payLoad,
-      );
-      if (response.statusCode == 200 && mounted) {
-        Navigator.push(
+      final res = await supabase.auth.signInWithPassword(email: email, password: password);
+
+      if (res.session != null && mounted) {
+        // Login success — navigate to Landingpage or home screen
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => Landingpage()),
+          MaterialPageRoute(builder: (context) => const Landingpage()),
         );
       }
-    } on SocketException catch (_) {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder:
-              (_) => AlertDialog(
-                titlePadding: EdgeInsets.all(0),
-                title: Container(
-                  alignment: Alignment.center,
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color.fromARGB(255, 255, 114, 114),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Text(
-                    "Error",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                content: Text(
-                  'Server not found. Please check your internet connection or try again later.',
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    child: Text('OK'),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-        );
-      }
+    } catch (e) {
+      _showErrorDialog('An unexpected error occurred. Please try again.');
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-
-    _fields = [
-      FormTextFieldModel(
-        controller: _emailController,
-        hintText: "Enter your E-mail",
-        label: "Email",
-        icon: Icons.email_outlined,
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Login Failed'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
       ),
-      FormTextFieldModel(
-        controller: _passwordController,
-        hintText: "Enter your password",
-        label: "Password",
-        icon: Icons.lock_outline,
-      ),
-    ];
+    );
   }
 
   @override
   void dispose() {
-    super.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -130,16 +78,23 @@ class _LoginFormState extends State<LoginForm> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: _fields.length,
-              itemBuilder: (context, index) {
-                final field = _fields[index];
-                return FormTextField(textData: field);
-              },
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email_outlined),
+              ),
+              keyboardType: TextInputType.emailAddress,
             ),
-
+            const SizedBox(height: 20),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+              obscureText: true,
+            ),
             const SizedBox(height: 70),
             SizedBox(
               width: double.infinity,
@@ -178,7 +133,7 @@ class _LoginFormState extends State<LoginForm> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   const Text(
-                    "Don't have account?",
+                    "Don't have an account?",
                     style: TextStyle(fontSize: 15),
                   ),
                   GestureDetector(
