@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'Login.dart';
 
 class Signup extends StatefulWidget {
@@ -10,8 +12,105 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> {
+  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscureText = true;
   bool checked = false;
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text("Signup Failed"),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _signUp() async {
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty ||
+        email.isEmpty ||
+        phone.isEmpty ||
+        password.isEmpty) {
+      _showErrorDialog("Please fill in all fields.");
+      return;
+    }
+
+    if (!checked) {
+      _showErrorDialog("You must agree to the terms and conditions.");
+      return;
+    }
+
+    if (phone.length != 11) {
+      _showErrorDialog("Phone number must be exactly 11 digits.");
+      return;
+    }
+
+    try {
+      final supabase = Supabase.instance.client;
+
+      final response = await supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      final user = response.user;
+
+      if (user != null) {
+        // Insert extra user info into your user_profiles table
+        await supabase.from('user_profiles').insert({
+          'id': user.id,
+          'username': username,
+          'email': email,
+          'phone': phone,
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Signup Successful!"),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const Login()),
+          );
+        }
+      } else {
+        // If user is null but no exception, show generic error
+        _showErrorDialog("Signup failed. Please try again.");
+      }
+    } on AuthException catch (e) {
+      _showErrorDialog(e.message);
+    } catch (e) {
+      _showErrorDialog("An unexpected error occurred. Please try again.");
+    }
+  }
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,6 +158,7 @@ class _SignupState extends State<Signup> {
                     const SizedBox(height: 40),
 
                     TextField(
+                      controller: _usernameController,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
                           vertical: 8,
@@ -83,6 +183,7 @@ class _SignupState extends State<Signup> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
+                      controller: _emailController,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
                           vertical: 8,
@@ -107,6 +208,7 @@ class _SignupState extends State<Signup> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
+                      controller: _phoneController,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
                           vertical: 8,
@@ -131,6 +233,7 @@ class _SignupState extends State<Signup> {
                     ),
                     const SizedBox(height: 20),
                     TextField(
+                      controller: _passwordController,
                       obscureText: _obscureText,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
@@ -205,24 +308,8 @@ class _SignupState extends State<Signup> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "SignUp Successful!",
-                                  style: GoogleFonts.poppins(),
-                                ),
-                                backgroundColor: Colors.lightGreen,
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Login(),
-                              ),
-                            );
-                          },
+                          onPressed: _signUp,
+
                           child: Text(
                             "Sign up",
                             style: GoogleFonts.poppins(
@@ -253,6 +340,7 @@ class _SignupState extends State<Signup> {
                                 ),
                               );
                             },
+
                             child: const Text(
                               "Sign in",
                               style: TextStyle(
