@@ -1,8 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="murir_tin"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+        android:name="com.mapbox.token"
+        android:value="pk.eyJ1IjoidGFtaW03IiwiYSI6ImNtYzByY243djA2Y2UybHIydTllaHhudjIifQ.6zTjpL0hMo0oQWBt8KNHOQ
+" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

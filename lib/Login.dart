@@ -41,6 +41,7 @@ class _LoginState extends State<Login> {
       return;
     }
 
+
     try {
       final supabase = Supabase.instance.client;
 
@@ -74,7 +75,7 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // Background
