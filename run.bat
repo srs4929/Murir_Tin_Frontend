@@ -1,0 +1,1 @@
+flutter run --dart-define ACCESS_TOKEN=pk.eyJ1IjoidGFtaW03IiwiYSI6ImNtYzByY243djA2Y2UybHIydTllaHhudjIifQ.6zTjpL0hMo0oQWBt8KNHOQ
