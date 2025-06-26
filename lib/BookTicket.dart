@@ -53,8 +53,8 @@ class _BookticketState extends State<Bookticket> {
         await Supabase.instance.client
             .from('bus_routes')
             .select('price, id, available_seats')
-            .ilike('from_location', from)
-            .ilike('to_location', to)
+            .eq('from_location', from)
+            .eq('to_location', to)
             .maybeSingle();
     print('Response: $response');
     if (response == null) {
@@ -235,16 +235,16 @@ class _BookticketState extends State<Bookticket> {
             alignment: Alignment.bottomCenter,
             child: GestureDetector(
               onTap: () {
-                if (ticketCount != null && totalCost != null) {
+               
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Qrcode(ticketCount: ticketCount!),
+                      builder: (context) => Qrcode(),
                     ),
                   );
-                } else {
+                /*else {
                   _showErrorDialog("Please confirm your booking first.");
-                }
+                }*/
               },
               child: Container(
                 width: double.infinity,

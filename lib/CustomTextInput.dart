@@ -6,18 +6,20 @@ class CustomTextInput extends StatelessWidget {
   final String hint;
   final IconData prefixIcon;
   final bool obscureText;
-
+  final TextEditingController? controller;
   const CustomTextInput({
     Key? key,
     required this.label,
     required this.hint,
     required this.prefixIcon,
     this.obscureText = false,
+    this.controller, 
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       obscureText: obscureText,
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),

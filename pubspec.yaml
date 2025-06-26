@@ -38,9 +38,11 @@ dependencies:
   supabase_flutter: ^2.9.1
   flutter_dotenv: ^5.2.1
   mapbox_maps_flutter: ^2.9.0
-  #geolocator: ^14.0.1
+  geolocator: ^14.0.1
   pretty_qr_code: ^3.4.0
   http: ^1.4.0
+  carousel_slider: ^5.1.1
+  geocoding: ^4.0.0
  
 dev_dependencies:
   flutter_test:

@@ -5,8 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 class Qrcode extends StatefulWidget {
-  final int ticketCount;
-  const Qrcode({Key? key, required this.ticketCount}) : super(key: key);
+  
+  const Qrcode ({super.key}); 
 
   @override
   State<Qrcode> createState() => _Qrcode();
