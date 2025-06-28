@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:murir_tin/Component.dart';
 import 'package:murir_tin/CustomBookText.dart';
+import 'package:murir_tin/PaymentDialog.dart';
 import 'package:murir_tin/QRcode.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -239,7 +240,7 @@ class _BookticketState extends State<Bookticket> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => Qrcode(),
+                      builder: (context) => PaymentDialog(),
                     ),
                   );
                 /*else {

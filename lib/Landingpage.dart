@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:murir_tin/Aboutus.dart';
 import 'package:murir_tin/BookTicket.dart';
 import 'package:murir_tin/BookingHistory.dart';
 import 'package:murir_tin/ComplainBox.dart';
@@ -9,7 +11,6 @@ import 'package:murir_tin/LiveMap.dart';
 import 'package:murir_tin/Login.dart';
 import 'package:murir_tin/Profile.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 
@@ -27,15 +28,21 @@ class _LandingpageState extends State<Landingpage> {
   double? _latitude;
   double? _longitude;
   String? _address;
-
   bool _isLoading = true;
   String? _errorMessage;
+  StreamSubscription<Position>? _positionStream; //avoiding memory leak
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _checkAndRequestPermissions();
+  }
+
+  @override
+  void dispose() {
+    _positionStream?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -58,7 +65,6 @@ class _LandingpageState extends State<Landingpage> {
   }
 
   Future<void> _checkAndRequestPermissions() async {
-    // Check if location services are enabled
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       setState(() {
@@ -68,7 +74,6 @@ class _LandingpageState extends State<Landingpage> {
       return;
     }
 
-    // Check and request permission
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
@@ -89,26 +94,23 @@ class _LandingpageState extends State<Landingpage> {
       return;
     }
 
-    // Get initial location and start listening for updates
     await _getCurrentLocation();
   }
 
   Future<void> _getCurrentLocation() async {
     try {
-      // Get initial position
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
       await _updateLocationMessage(position);
 
-      // Listen for location updates
-      Geolocator.getPositionStream(
+      _positionStream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // Update when user moves 10 meters
+          distanceFilter: 100,
         ),
-      ).listen((Position position) async {
-        await _updateLocationMessage(position);
+      ).listen((Position newPosition) async {
+        await _updateLocationMessage(newPosition);
       });
     } catch (e) {
       setState(() {
@@ -124,21 +126,28 @@ class _LandingpageState extends State<Landingpage> {
         position.latitude,
         position.longitude,
       );
-      Placemark place = placemarks[0];
-      String fullAddress =
-          "${place.street}, ${place.locality}, ${place.postalCode}, ${place.country}";
+      Placemark place = placemarks.first;
+
+      String area =
+          place.subLocality ??
+          place.locality ??
+          place.administrativeArea ??
+          "Unknown Area";
+      String city =
+          place.locality ?? place.administrativeArea ?? "Unknown City";
+      String country = place.country ?? "Unknown Country";
 
       setState(() {
         _latitude = position.latitude;
         _longitude = position.longitude;
-        _address = fullAddress;
+        _address = "$area, $city, $country";
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _latitude = position.latitude;
         _longitude = position.longitude;
-        _address = "Unable to fetch address";
+        _address = "Unable to fetch area";
         _isLoading = false;
       });
     }
@@ -227,10 +236,6 @@ class _LandingpageState extends State<Landingpage> {
               title: Text('Home', style: GoogleFonts.poppins()),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Landingpage()),
-                );
               },
             ),
             ListTile(
@@ -271,11 +276,24 @@ class _LandingpageState extends State<Landingpage> {
               },
             ),
             ListTile(
+              leading: Icon(Icons.group),
+              title: Text('About us', style: GoogleFonts.poppins()),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const Aboutus(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.logout),
               title: Text('Sign out', style: GoogleFonts.poppins()),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => Login()),
                 );
@@ -288,7 +306,7 @@ class _LandingpageState extends State<Landingpage> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, // Align left
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Welcome, ${username ?? ''}!',
@@ -304,23 +322,21 @@ class _LandingpageState extends State<Landingpage> {
                 style: GoogleFonts.poppins(fontSize: 16, color: Colors.black),
               ),
               const SizedBox(height: 20),
-
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      // Latitude icon
-                      SizedBox(width: 8),
-                      Text("Current Latitude: $_latitude"),
+                      Text(
+                        "Current Latitude: ${_latitude?.toStringAsFixed(4) ?? '...'}",
+                      ),
                     ],
                   ),
-
                   Row(
                     children: [
-                   
-                      SizedBox(width: 8),
-                      Text("Current Longitude: $_longitude"),
+                      Text(
+                        "Current Longitude: ${_longitude?.toStringAsFixed(4) ?? '...'}",
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -330,79 +346,59 @@ class _LandingpageState extends State<Landingpage> {
                       Icon(
                         Icons.location_on,
                         size: 22,
-                        color: const Color.fromARGB(255, 5, 1, 51),
+                        color: Color.fromARGB(255, 5, 1, 51),
                       ),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          "Current Location: $_address",
-                          style: GoogleFonts.poppins(fontSize: 14,
-                          fontWeight:FontWeight.w500),
+                          "Current Location: ${_address ?? 'Updating...'}",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height:3),
+                  const SizedBox(height: 3),
                   Row(
                     children: [
                       Icon(
                         Icons.notification_important,
-                        size:28,
-                        color: const Color.fromARGB(255, 9, 4, 56),
-                      ), // Longitude icon
+                        size: 28,
+                        color: Color.fromARGB(255, 9, 4, 56),
+                      ),
                       SizedBox(width: 8),
-                      Text("Use QR to book ticket instantly",
-                      style:GoogleFonts.poppins(
-                         fontSize: 14,
-                         fontWeight: FontWeight.w500
-                      )),
+                      Text(
+                        "Use QR to book ticket instantly",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height:3),
-                   Row(
+                  const SizedBox(height: 3),
+                  Row(
                     children: [
                       Icon(
                         Icons.notification_important,
-                        size:28,
-                        color: const Color.fromARGB(255, 9, 4, 56),
-                      ), // Longitude icon
+                        size: 28,
+                        color: Color.fromARGB(255, 9, 4, 56),
+                      ),
                       SizedBox(width: 2),
-                      Text("Report issues easily using the Complain Box",
-                      style:GoogleFonts.poppins(
-                         fontSize: 14,
-                         fontWeight: FontWeight.w500
-                      )),
+                      Text(
+                        "Report issues easily using the Complain Box",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
-                  )
+                  ),
                 ],
               ),
-              /* CarouselSlider(
-                options: CarouselOptions(
-                  height: 160,
-                  autoPlay: true,
-                  enlargeCenterPage: true,
-                  viewportFraction: 0.85,
-                ),
-                items: [
-                  _buildCarouselItem(
-                    "Use QR to book tickets instantly!",
-                    Icons.qr_code,
-                  ),
-                  _buildCarouselItem(
-                    "Track your bus live on the map!",
-                    Icons.location_on,
-                  ),
-                  _buildCarouselItem(
-                    "Report issues easily using the Complain Box.",
-                    Icons.feedback,
-                  ),
-                  _buildCarouselItem(
-                    "Save your favorite routes for quick access!",
-                    Icons.favorite,
-                  ),
-                ],
-              ),*/
-              const SizedBox(height: 30),
+              const SizedBox(height: 18),
               Text("Quick Actions", style: GoogleFonts.poppins(fontSize: 18)),
               const SizedBox(height: 20),
               Expanded(
@@ -449,7 +445,9 @@ class _LandingpageState extends State<Landingpage> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => Findbus()),
+                          MaterialPageRoute(
+                            builder: (context) => BusMap(routeId: "1"),
+                          ),
                         );
                       },
                     ),
@@ -462,70 +460,39 @@ class _LandingpageState extends State<Landingpage> {
       ),
     );
   }
-}
 
-Widget _buildFeatureTile({
-  required IconData icon,
-  required String label,
-  required VoidCallback onTap,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF14213D), Color(0xFF4B6EAF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 56, color: Colors.white),
-          const SizedBox(height: 14),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+  Widget _buildFeatureTile({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF14213D), Color(0xFF4B6EAF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 56, color: Colors.white),
+            const SizedBox(height: 14),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-
-/*Widget _buildCarouselItem(String text, IconData icon) {
-  return Container(
-    margin: const EdgeInsets.symmetric(horizontal: 5),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF4B6EAF), Color(0xFF14213D)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: Colors.white, size: 36),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.white,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}*/
