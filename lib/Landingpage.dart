@@ -10,6 +10,7 @@ import 'package:murir_tin/FindBus.dart';
 import 'package:murir_tin/LiveMap.dart';
 import 'package:murir_tin/Login.dart';
 import 'package:murir_tin/Profile.dart';
+import 'package:murir_tin/SOS.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
@@ -271,6 +272,19 @@ class _LandingpageState extends State<Landingpage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const Complainstatus(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.warning),
+              title: Text('Emergency SOS', style: GoogleFonts.poppins()),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SOS(),
                   ),
                 );
               },

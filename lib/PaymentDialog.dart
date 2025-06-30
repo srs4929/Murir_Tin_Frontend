@@ -128,7 +128,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   );
                 },
                 style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Colors.black),
+                  backgroundColor: MaterialStateProperty.all(Color(0xFF14213D)),
                   minimumSize: MaterialStateProperty.all(
                     Size(60, 10),
                   ), // always black
@@ -201,10 +201,10 @@ class _PaymentDialogState extends State<PaymentDialog> {
                       _showPinDialog();
                     },
             style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(Colors.black),
+              backgroundColor: MaterialStateProperty.all(Color(0xFF14213D)),
               minimumSize: MaterialStateProperty.all(
                 Size(200, 10),
-              ), // always black
+              ),
               foregroundColor: MaterialStateProperty.all(Colors.white),
               padding: MaterialStateProperty.all(
                 EdgeInsets.symmetric(horizontal: 15, vertical: 9),
