@@ -258,7 +258,7 @@ class _LandingpageState extends State<Landingpage> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const Bookinghistory(),
+                    builder: (context) =>  Bookinghistory(username:username ?? ''),
                   ),
                 );
               },

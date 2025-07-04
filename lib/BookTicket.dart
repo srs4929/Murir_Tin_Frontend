@@ -78,7 +78,7 @@ class _BookticketState extends State<Bookticket> {
     }
 
     final total = count * price;
-
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     // Insert booking
     final insertResponse = await Supabase.instance.client
         .from('ticket_booking')
@@ -89,6 +89,7 @@ class _BookticketState extends State<Bookticket> {
           'ticket_count': count,
           'total_price': total,
           'booking_time': DateTime.now().toIso8601String(),
+          'user_id': userId,
         });
 
     if (insertResponse.error != null) {
