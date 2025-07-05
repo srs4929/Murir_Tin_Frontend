@@ -49,12 +49,12 @@ class PdfGenerator {
                 1: pw.FlexColumnWidth(3),
               },
               children: [
-                _buildRow('Departure', departure),
-                _buildRow('Destination', destination),
-                _buildRow('Date', date),
-                _buildRow('Time', time),
-                _buildRow('Tickets', '$ticketCount'),
-                _buildRow('Total Cost', totalCost),
+                buildRow('Departure', departure),
+                buildRow('Destination', destination),
+                buildRow('Date', date),
+                buildRow('Time', time),
+                buildRow('Tickets', '$ticketCount'),
+                buildRow('Total Cost', totalCost),
               ],
             ),
           ],
@@ -65,7 +65,7 @@ class PdfGenerator {
     return pdf;
   }
 
-  static pw.TableRow _buildRow(String label, String value) {
+  static pw.TableRow buildRow(String label, String value) {
     return pw.TableRow(
       children: [
         pw.Padding(

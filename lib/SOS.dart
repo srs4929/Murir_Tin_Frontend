@@ -42,7 +42,7 @@ class _SOSWidgetState extends State<SOS> {
   }
 
   Future<void> _triggerSOS() async {
-    const emergencyNumber = 'tel:01886447982';
+    const emergencyNumber = 'tel:999';
     if (await canLaunchUrl(Uri.parse(emergencyNumber))) {
       await launchUrl(
         Uri.parse(emergencyNumber),
