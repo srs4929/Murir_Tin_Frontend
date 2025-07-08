@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:http/http.dart' as http;
+import 'package:murir_tin/api.dart';
 import 'Login.dart';
+import 'dart:convert';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -40,6 +42,7 @@ class _SignupState extends State<Signup> {
     final email = _emailController.text.trim();
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
+    final profile_pic_url = 'https://www.w3schools.com/w3images/avatar2.png';
 
     if (username.isEmpty ||
         email.isEmpty ||
@@ -60,43 +63,37 @@ class _SignupState extends State<Signup> {
     }
 
     try {
-      final supabase = Supabase.instance.client;
+      final payload = {
+        'email': email,
+        'password': password,
+        'username': username,
+        'phone': phone,
+        'profile_pic_url': profile_pic_url,
+      };
 
-      final response = await supabase.auth.signUp(
-        email: email,
-        password: password,
+      // 2. Call your FastAPI signup endpoint
+      final response = await http.post(
+        Uri.parse(signup_endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
       );
 
-      final user = response.user;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Signup Successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
 
-      if (user != null) {
-        // Insert extra user info into your user_profiles table
-        await supabase.from('user_profiles').insert({
-          'id': user.id,
-          'username': username,
-          'email': email,
-          'phone': phone,
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Signup Successful!"),
-              backgroundColor: Colors.green,
-            ),
-          );
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const Login()),
-          );
-        }
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Login()),
+        );
       } else {
         // If user is null but no exception, show generic error
         _showErrorDialog("Signup failed. Please try again.");
       }
-    } on AuthException catch (e) {
-      _showErrorDialog(e.message);
     } catch (e) {
       _showErrorDialog("An unexpected error occurred. Please try again.");
     }

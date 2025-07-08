@@ -3,7 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:murir_tin/SignUp.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'Landingpage.dart';
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:murir_tin/api.dart';
 class Login extends StatefulWidget {
   const Login({super.key});
 
@@ -12,9 +15,11 @@ class Login extends StatefulWidget {
 }
 
 class _LoginState extends State<Login> {
-  final _emailController = TextEditingController();
+  
+ final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscureText = true;
+  final _storage = const FlutterSecureStorage();
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -43,14 +48,19 @@ class _LoginState extends State<Login> {
 
 
     try {
-      final supabase = Supabase.instance.client;
-
-      final response = await supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
+      final response = await http.post(
+        Uri.parse(login_endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
       );
 
-      if (response.user != null) {
+      if (response.statusCode == 200) {
+        final token = jsonDecode(response.body)['access_token'];
+        await _storage.write(key: 'jwt_token', value: token);
+
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -58,7 +68,8 @@ class _LoginState extends State<Login> {
           );
         }
       } else {
-        _showErrorDialog("Invalid email or password.");
+        final error = jsonDecode(response.body)['detail'] ?? 'Login failed';
+        _showErrorDialog(error);
       }
     } catch (e) {
       _showErrorDialog("An error occurred during login.");
@@ -71,6 +82,9 @@ class _LoginState extends State<Login> {
     _passwordController.dispose();
     super.dispose();
   }
+  
+
+
 
   @override
   Widget build(BuildContext context) {

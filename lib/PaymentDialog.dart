@@ -3,7 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:murir_tin/QRcode.dart';
 
 class PaymentDialog extends StatefulWidget {
-  const PaymentDialog({super.key});
+  final int ticketCount;
+  final String bookingId;
+
+  const PaymentDialog({
+    Key? key,
+    required this.ticketCount,
+    required this.bookingId,
+  }) : super(key: key);
 
   @override
   State<PaymentDialog> createState() => _PaymentDialogState();
@@ -78,7 +85,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                     maxLength: 6,
                     decoration: const InputDecoration(
                       contentPadding: EdgeInsets.symmetric(
-                        vertical:10,
+                        vertical: 10,
                         horizontal: 3,
                       ),
                       hintText: "XXXXXX",
@@ -124,7 +131,13 @@ class _PaymentDialogState extends State<PaymentDialog> {
                   // Navigate to QR code page
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const Qrcode()),
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>  Qrcode(
+                            ticketCount: widget.ticketCount,
+                            ticketId: widget.bookingId,
+                          ),
+                    ),
                   );
                 },
                 style: ButtonStyle(
@@ -202,9 +215,7 @@ class _PaymentDialogState extends State<PaymentDialog> {
                     },
             style: ButtonStyle(
               backgroundColor: MaterialStateProperty.all(Color(0xFF14213D)),
-              minimumSize: MaterialStateProperty.all(
-                Size(200, 10),
-              ),
+              minimumSize: MaterialStateProperty.all(Size(200, 10)),
               foregroundColor: MaterialStateProperty.all(Colors.white),
               padding: MaterialStateProperty.all(
                 EdgeInsets.symmetric(horizontal: 15, vertical: 9),

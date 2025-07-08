@@ -11,9 +11,14 @@ import 'package:murir_tin/LiveMap.dart';
 import 'package:murir_tin/Login.dart';
 import 'package:murir_tin/Profile.dart';
 import 'package:murir_tin/SOS.dart';
+import 'package:murir_tin/social_issues_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:murir_tin/api.dart';
+import 'dart:convert';
 
 class Landingpage extends StatefulWidget {
   const Landingpage({super.key});
@@ -22,7 +27,7 @@ class Landingpage extends StatefulWidget {
   State<Landingpage> createState() => _LandingpageState();
 }
 
-class _LandingpageState extends State<Landingpage> {
+class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
   String? username;
   String? email;
   String _locationMessage = "Fetching location...";
@@ -31,38 +36,144 @@ class _LandingpageState extends State<Landingpage> {
   String? _address;
   bool _isLoading = true;
   String? _errorMessage;
-  StreamSubscription<Position>? _positionStream; //avoiding memory leak
+  String? profilePicUrl;
+  final _storage = const FlutterSecureStorage();
+  StreamSubscription<Position>? _positionStream;
+  String _imageVersion = ''; //avoiding memory leak
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
     _checkAndRequestPermissions();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
     _positionStream?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Refresh data when app comes back to foreground
+      _refreshUserData();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Only reload if we're not currently loading
+    if (!_isLoading) {
+      _loadUserData();
+    }
+  }
+
   Future<void> _loadUserData() async {
-    final supabase = Supabase.instance.client;
-    final userId = supabase.auth.currentUser?.id;
-
-    if (userId != null) {
-      final response =
-          await supabase
-              .from('user_profiles')
-              .select('username, email')
-              .eq('id', userId)
-              .single();
-
+    final token = await _storage.read(key: 'jwt_token');
+    if (token == null || token.isEmpty) {
       setState(() {
-        username = response['username'];
-        email = response['email'];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(landing_page_endpoint),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final userData = jsonDecode(response.body);
+        setState(() {
+          username = userData['username'];
+          email = userData['email'];
+          profilePicUrl = userData['profile_pic_url'];
+          // Update image version to force refresh
+          _imageVersion = DateTime.now().millisecondsSinceEpoch.toString();
+          _isLoading = false;
+        });
+      } else {
+        debugPrint('Failed to load profile: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+      setState(() {
+        _isLoading = false;
       });
     }
+  }
+
+  // Add method to refresh user data
+  Future<void> _refreshUserData() async {
+    setState(() {
+      _isLoading = true;
+    });
+    await _loadUserData();
+  }
+
+  Widget _buildProfileAvatar({required double radius, double? iconSize}) {
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.white,
+      child:
+          profilePicUrl != null && profilePicUrl!.isNotEmpty
+              ? ClipOval(
+                child: Image.network(
+                  '${profilePicUrl!}?v=$_imageVersion', // Use the stored image version
+                  fit: BoxFit.cover,
+                  width: radius * 2,
+                  height: radius * 2,
+                  // Add cache headers to prevent caching
+                  headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                  },
+                  errorBuilder: (context, error, stackTrace) {
+                    debugPrint('Error loading profile image: $error');
+                    return Icon(
+                      Icons.person,
+                      size: iconSize ?? radius,
+                      color: Color(0xFF14213D),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return SizedBox(
+                      width: radius * 2,
+                      height: radius * 2,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF14213D),
+                        value:
+                            loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                                : null,
+                      ),
+                    );
+                  },
+                ),
+              )
+              : Icon(
+                Icons.person,
+                size: iconSize ?? radius,
+                color: Color(0xFF14213D),
+              ),
+    );
   }
 
   Future<void> _checkAndRequestPermissions() async {
@@ -156,6 +267,21 @@ class _LandingpageState extends State<Landingpage> {
 
   @override
   Widget build(BuildContext context) {
+    // Responsive calculations
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Dynamic font sizes based on screen width
+    final largeFontSize = screenWidth * 0.07; // e.g. 7% of screen width
+    final mediumFontSize = screenWidth * 0.045;
+    final smallFontSize = screenWidth * 0.035;
+
+    // Determine grid column count based on screen width
+    int gridCrossAxisCount = (screenWidth ~/ 180).clamp(
+      1,
+      2,
+    ); // max 2 columns for mobile
+
     return Scaffold(
       appBar: AppBar(
         iconTheme: const IconThemeData(color: Colors.white),
@@ -164,6 +290,7 @@ class _LandingpageState extends State<Landingpage> {
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.bold,
+            fontSize: mediumFontSize,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -203,109 +330,143 @@ class _LandingpageState extends State<Landingpage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircleAvatar(
-                    radius: 40,
+                  CircleAvatar(
+                    radius: screenWidth * 0.1,
                     backgroundColor: Colors.white,
                     child: Icon(
                       Icons.person,
-                      size: 48,
-                      color: Color(0xFF14213D),
+                      size: screenWidth * 0.13,
+                      color: const Color(0xFF14213D),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenHeight * 0.01),
                   Text(
                     username ?? "Loading...",
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: mediumFontSize,
                     ),
                   ),
                   Text(
                     email ?? "",
                     style: GoogleFonts.poppins(
                       color: Colors.white70,
-                      fontSize: 14,
+                      fontSize: smallFontSize,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: screenHeight * 0.02),
             ListTile(
-              leading: Icon(Icons.home),
-              title: Text('Home', style: GoogleFonts.poppins()),
+              leading: const Icon(Icons.home),
+              title: Text(
+                'Home',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Profile', style: GoogleFonts.poppins()),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Profile()),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.receipt_long),
-              title: Text('Booking History', style: GoogleFonts.poppins()),
+              leading: const Icon(Icons.person),
+              title: Text(
+                'Profile',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) =>  Bookinghistory(username:username ?? ''),
-                  ),
+                  MaterialPageRoute(builder: (context) => MyProfileScreen()),
                 );
               },
             ),
             ListTile(
-              leading: Icon(Icons.hourglass_bottom),
-              title: Text('Complain status', style: GoogleFonts.poppins()),
+              leading: const Icon(Icons.receipt_long),
+              title: Text(
+                'Booking History',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const Complainstatus(),
+                    builder:
+                        (context) => Bookinghistory(username: username ?? ''),
                   ),
                 );
               },
             ),
             ListTile(
-              leading: Icon(Icons.warning),
-              title: Text('Emergency SOS', style: GoogleFonts.poppins()),
+              leading: const Icon(Icons.hourglass_bottom),
+              title: Text(
+                'Complain status',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const SOS(),
+                    builder: (context) => ComplaintStatusScreen(),
                   ),
                 );
               },
             ),
             ListTile(
-              leading: Icon(Icons.group),
-              title: Text('About us', style: GoogleFonts.poppins()),
+              leading: const Icon(Icons.receipt_long),
+              title: Text(
+                'Social Issues',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const Aboutus(),
-                  ),
+                  MaterialPageRoute(builder: (context) => SocialIssuesScreen()),
                 );
               },
             ),
             ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Sign out', style: GoogleFonts.poppins()),
+              leading: const Icon(Icons.warning),
+              title: Text(
+                'Emergency SOS',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
               onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SOS()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.group),
+              title: Text(
+                'About us',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Aboutus()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout),
+              title: Text(
+                'Sign out',
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
+              onTap: () async {
+                // Clear stored data
+                await _storage.delete(key: 'jwt_token');
                 Navigator.pop(context);
                 Navigator.pushReplacement(
                   context,
@@ -318,112 +479,126 @@ class _LandingpageState extends State<Landingpage> {
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.04,
+            vertical: screenHeight * 0.02,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Welcome, ${username ?? ''}!',
                 style: GoogleFonts.poppins(
-                  fontSize: 28,
+                  fontSize: largeFontSize,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF14213D),
+                  color: const Color(0xFF14213D),
                 ),
               ),
-              const SizedBox(height: 10),
+              SizedBox(height: screenHeight * 0.015),
               Text(
                 'Explore your journey',
-                style: GoogleFonts.poppins(fontSize: 16, color: Colors.black),
+                style: GoogleFonts.poppins(
+                  fontSize: mediumFontSize,
+                  color: Colors.black,
+                ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: screenHeight * 0.03),
+
+              // Location info with responsive layout
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        "Current Latitude: ${_latitude?.toStringAsFixed(4) ?? '...'}",
-                      ),
-                    ],
+                  Text(
+                    "Current Latitude: ${_latitude?.toStringAsFixed(4) ?? '...'}",
+                    style: GoogleFonts.poppins(fontSize: smallFontSize),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        "Current Longitude: ${_longitude?.toStringAsFixed(4) ?? '...'}",
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 22,
-                        color: Color.fromARGB(255, 5, 1, 51),
-                      ),
-                      SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          "Current Location: ${_address ?? 'Updating...'}",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.notification_important,
-                        size: 28,
-                        color: Color.fromARGB(255, 9, 4, 56),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        "Use QR to book ticket instantly",
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.notification_important,
-                        size: 28,
-                        color: Color.fromARGB(255, 9, 4, 56),
-                      ),
-                      SizedBox(width: 2),
-                      Text(
-                        "Report issues easily using the Complain Box",
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  SizedBox(height: screenHeight * 0.005),
+                  Text(
+                    "Current Longitude: ${_longitude?.toStringAsFixed(4) ?? '...'}",
+                    style: GoogleFonts.poppins(fontSize: smallFontSize),
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
-              Text("Quick Actions", style: GoogleFonts.poppins(fontSize: 18)),
-              const SizedBox(height: 20),
+              SizedBox(height: screenHeight * 0.012),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.location_on,
+                    size: smallFontSize * 1.4,
+                    color: const Color.fromARGB(255, 5, 1, 51),
+                  ),
+                  SizedBox(width: screenWidth * 0.015),
+                  Expanded(
+                    child: Text(
+                      "Current Location: ${_address ?? 'Updating...'}",
+                      style: GoogleFonts.poppins(
+                        fontSize: smallFontSize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: screenHeight * 0.01),
+
+              Row(
+                children: [
+                  Icon(
+                    Icons.notification_important,
+                    size: smallFontSize * 1.6,
+                    color: const Color.fromARGB(255, 9, 4, 56),
+                  ),
+                  SizedBox(width: screenWidth * 0.02),
+                  Expanded(
+                    child: Text(
+                      "Use QR to book ticket instantly",
+                      style: GoogleFonts.poppins(
+                        fontSize: smallFontSize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: screenHeight * 0.005),
+              Row(
+                children: [
+                  Icon(
+                    Icons.notification_important,
+                    size: smallFontSize * 1.6,
+                    color: const Color.fromARGB(255, 9, 4, 56),
+                  ),
+                  SizedBox(width: screenWidth * 0.01),
+                  Expanded(
+                    child: Text(
+                      "Report issues easily using the Complain Box",
+                      style: GoogleFonts.poppins(
+                        fontSize: smallFontSize,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: screenHeight * 0.025),
+
+              Text(
+                "Quick Actions",
+                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+              ),
+              SizedBox(height: screenHeight * 0.02),
+
               Expanded(
                 child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
+                  crossAxisCount: gridCrossAxisCount,
+                  crossAxisSpacing: screenWidth * 0.04,
+                  mainAxisSpacing: screenHeight * 0.025,
                   children: [
                     _buildFeatureTile(
                       icon: Icons.confirmation_number_outlined,
                       label: 'Book Ticket',
+                      fontSize: mediumFontSize,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -434,11 +609,17 @@ class _LandingpageState extends State<Landingpage> {
                     _buildFeatureTile(
                       icon: Icons.feedback,
                       label: 'Complain Box',
+                      fontSize: mediumFontSize,
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => Complainbox(),
+                            builder:
+                                (context) => ComplaintBoxScreen(
+                                  username: username,
+                                  email: email,
+                                  profilePicUrl: profilePicUrl,
+                                ),
                           ),
                         );
                       },
@@ -446,6 +627,7 @@ class _LandingpageState extends State<Landingpage> {
                     _buildFeatureTile(
                       icon: Icons.location_on,
                       label: 'Live Map',
+                      fontSize: mediumFontSize,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -456,6 +638,7 @@ class _LandingpageState extends State<Landingpage> {
                     _buildFeatureTile(
                       icon: Icons.directions_bus_filled,
                       label: 'Find My Bus',
+                      fontSize: mediumFontSize,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -479,6 +662,7 @@ class _LandingpageState extends State<Landingpage> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required double fontSize,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -494,12 +678,13 @@ class _LandingpageState extends State<Landingpage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 56, color: Colors.white),
-            const SizedBox(height: 14),
+            Icon(icon, size: fontSize * 3, color: Colors.white),
+            SizedBox(height: fontSize * 0.7),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: GoogleFonts.poppins(
-                fontSize: 18,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),

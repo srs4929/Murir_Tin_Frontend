@@ -5,6 +5,10 @@ import 'package:murir_tin/CustomBookText.dart';
 import 'package:murir_tin/PaymentDialog.dart';
 import 'package:murir_tin/QRcode.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:murir_tin/api.dart';
 
 class Bookticket extends StatefulWidget {
   const Bookticket({super.key});
@@ -17,9 +21,11 @@ class _BookticketState extends State<Bookticket> {
   final TextEditingController ticketController = TextEditingController();
   final TextEditingController fromController = TextEditingController();
   final TextEditingController toController = TextEditingController();
+  final _storage = const FlutterSecureStorage();
 
-  int? ticketCount;
-  int? totalCost;
+  int? _ticketCount;
+  int? _totalCost;
+  String? _bookingId;
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -38,6 +44,18 @@ class _BookticketState extends State<Bookticket> {
     );
   }
 
+  Future<String?> _getJwtToken() async {
+    final token = await _storage.read(key: 'jwt_token');
+    if (token == null || token.isEmpty) {
+      print('DEBUG: JWT Token is null or empty. User might not be logged in.');
+      _showErrorDialog('You are not logged in. Please log in to book tickets.');
+      return null;
+    } else {
+      print('DEBUG: Retrieved JWT Token: $token');
+      return token;
+    }
+  }
+
   Future<void> bookTickets() async {
     final from = fromController.text.trim();
     final to = toController.text.trim();
@@ -47,74 +65,82 @@ class _BookticketState extends State<Bookticket> {
       _showErrorDialog("Please fill all fields correctly.");
       return;
     }
-    print('FROM: $from');
-    print('TO: $to');
-    print('--- Querying Supabase...');
-    final response =
-        await Supabase.instance.client
-            .from('bus_routes')
-            .select('price, id, available_seats')
-            .eq('from_location', from)
-            .eq('to_location', to)
-            .maybeSingle();
-    print('Response: $response');
-    if (response == null) {
-      _showErrorDialog("Route not found.");
-      return;
-    }
-
-    final available = response['available_seats'] as int?;
-    final price = response['price'] as int?;
-    final routeId = response['id'] as int?;
-
-    if (available == null || price == null || routeId == null) {
-      _showErrorDialog("Incomplete route data.");
-      return;
-    }
 
     if (count > 4) {
-      _showErrorDialog("You can not book more than 4 seats");
+      _showErrorDialog("You cannot book more than 4 seats.");
       return;
     }
 
-    final total = count * price;
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    // Insert booking
-    final insertResponse = await Supabase.instance.client
-        .from('ticket_booking')
-        .insert({
-          'route_id': routeId,
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Booking tickets..."),
+              ],
+            ),
+          ),
+    );
+
+    try {
+      final token = await _getJwtToken();
+      if (token == null) {
+        Navigator.pop(context);
+        return;
+      }
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
+      final response = await http.post(
+        Uri.parse(ticket_book_endpoint),
+        headers: headers,
+        body: json.encode({
           'from_location': from,
           'to_location': to,
           'ticket_count': count,
-          'total_price': total,
-          'booking_time': DateTime.now().toIso8601String(),
-          'user_id': userId,
+        }),
+      );
+
+      Navigator.pop(context); // Dismiss loading
+
+      if (response.statusCode == 201) {
+        final responseData = json.decode(response.body);
+        print("DEBUG: Booking response = $responseData");
+
+        setState(() {
+          _ticketCount = responseData['ticket_count'];
+          _totalCost = responseData['total_cost'];
+          _bookingId = responseData['booking_id'];
         });
 
-    if (insertResponse.error != null) {
-      _showErrorDialog("Booking failed: ${insertResponse.error!.message}");
-      return;
-    }
-
-    // Update available seats
-    final updateResponse = await Supabase.instance.client
-        .from('bus_routes')
-        .update({'available_seats': available - count})
-        .eq('id', routeId);
-
-    if (updateResponse.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Booking successful! Total cost: ৳$_totalCost"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final errorData = json.decode(response.body);
+        final errorMessage =
+            errorData['detail'] ?? "An unknown error occurred.";
+        _showErrorDialog(errorMessage);
+      }
+    } on http.ClientException catch (e) {
+      Navigator.pop(context);
       _showErrorDialog(
-        "Failed to update seats: ${updateResponse.error!.message}",
+        "Network error: Failed to connect to the server. Is FastAPI running? (${e.message})",
       );
-      return;
+    } catch (e) {
+      Navigator.pop(context);
+      _showErrorDialog("An unexpected error occurred: $e");
     }
-
-    // Save values to state to display cost and prepare for payment
-    setState(() {
-      ticketCount = count;
-      totalCost = total;
-    });
   }
 
   @override
@@ -196,9 +222,9 @@ class _BookticketState extends State<Bookticket> {
                         const SizedBox(height: 22),
 
                         // Show total cost if booked
-                        if (totalCost != null)
+                        if (_totalCost != null)
                           Text(
-                            "Total cost: \$${totalCost.toString()}",
+                            "Total cost: ৳$_totalCost",
                             style: GoogleFonts.poppins(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -237,16 +263,23 @@ class _BookticketState extends State<Bookticket> {
             alignment: Alignment.bottomCenter,
             child: GestureDetector(
               onTap: () {
-               
+                if (_ticketCount != null &&
+                    _totalCost != null &&
+                    _bookingId != null) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => PaymentDialog(),
+                      builder:
+                          (context) => PaymentDialog(
+                            ticketCount: _ticketCount!, //  the variable here
+
+                            bookingId: _bookingId!,
+                          ),
                     ),
                   );
-                /*else {
+                } else {
                   _showErrorDialog("Please confirm your booking first.");
-                }*/
+                }
               },
               child: Container(
                 width: double.infinity,
