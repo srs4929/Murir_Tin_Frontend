@@ -1,4 +1,4 @@
-String BASE_URL = "http://192.168.0.103:8000";
+String BASE_URL = "https://murir-tin-server.vercel.app";
 
 String login_endpoint = BASE_URL + "/auth/token";
 String signup_endpoint = BASE_URL + "/auth/signup";

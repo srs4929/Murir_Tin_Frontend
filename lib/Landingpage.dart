@@ -6,11 +6,12 @@ import 'package:murir_tin/BookTicket.dart';
 import 'package:murir_tin/BookingHistory.dart';
 import 'package:murir_tin/ComplainBox.dart';
 import 'package:murir_tin/ComplainStatus.dart';
-import 'package:murir_tin/FindBus.dart';
+
 import 'package:murir_tin/LiveMap.dart';
 import 'package:murir_tin/Login.dart';
 import 'package:murir_tin/Profile.dart';
 import 'package:murir_tin/SOS.dart';
+import 'package:murir_tin/bus_map.dart';
 import 'package:murir_tin/social_issues_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -290,7 +291,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: mediumFontSize,
+            fontSize: 22,
           ),
         ),
         backgroundColor: Colors.transparent,
@@ -361,20 +362,14 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
             SizedBox(height: screenHeight * 0.02),
             ListTile(
               leading: const Icon(Icons.home),
-              title: Text(
-                'Home',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
-              ),
+              title: Text('Home', style: GoogleFonts.poppins(fontSize: 16)),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.person),
-              title: Text(
-                'Profile',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
-              ),
+              title: Text('Profile', style: GoogleFonts.poppins(fontSize: 16)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -387,7 +382,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               leading: const Icon(Icons.receipt_long),
               title: Text(
                 'Booking History',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+                style: GoogleFonts.poppins(fontSize: 16),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -404,7 +399,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               leading: const Icon(Icons.hourglass_bottom),
               title: Text(
                 'Complain status',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+                style: GoogleFonts.poppins(fontSize: 16),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -420,7 +415,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               leading: const Icon(Icons.receipt_long),
               title: Text(
                 'Social Issues',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+                style: GoogleFonts.poppins(fontSize: 16),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -434,7 +429,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               leading: const Icon(Icons.warning),
               title: Text(
                 'Emergency SOS',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
+                style: GoogleFonts.poppins(fontSize: 16),
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -446,10 +441,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
             ),
             ListTile(
               leading: const Icon(Icons.group),
-              title: Text(
-                'About us',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
-              ),
+              title: Text('About us', style: GoogleFonts.poppins(fontSize: 16)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -460,10 +452,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
             ),
             ListTile(
               leading: const Icon(Icons.logout),
-              title: Text(
-                'Sign out',
-                style: GoogleFonts.poppins(fontSize: mediumFontSize),
-              ),
+              title: Text('Sign out', style: GoogleFonts.poppins(fontSize: 16)),
               onTap: () async {
                 // Clear stored data
                 await _storage.delete(key: 'jwt_token');
@@ -642,9 +631,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => BusMap(routeId: "1"),
-                          ),
+                          MaterialPageRoute(builder: (context) => BusMap()),
                         );
                       },
                     ),
