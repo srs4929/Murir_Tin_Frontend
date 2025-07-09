@@ -412,7 +412,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.receipt_long),
+              leading: const Icon(Icons.forum),
               title: Text(
                 'Social Issues',
                 style: GoogleFonts.poppins(fontSize: 16),
@@ -426,7 +426,7 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.warning),
+              leading: const Icon(Icons.sos),
               title: Text(
                 'Emergency SOS',
                 style: GoogleFonts.poppins(fontSize: 16),

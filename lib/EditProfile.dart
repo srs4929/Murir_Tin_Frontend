@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:murir_tin/Component.dart';
 import 'package:murir_tin/api.dart';
 import 'package:path/path.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -154,24 +155,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final middleBlueColor = Color(0xFF2F4F78);
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [middleBlueColor, Color(0xFF14213D)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, size: 30),
-          onPressed: () => Navigator.pop(context, false),
-          color: Colors.white,
-        ),
-        title: Text('Edit Profile', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
+      appBar: GAppBar(title: "Edit Profile"),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Column(

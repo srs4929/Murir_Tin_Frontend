@@ -1,7 +1,9 @@
- import 'dart:convert';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:murir_tin/Component.dart';
 import 'package:murir_tin/api.dart';
 
 class SocialIssuesScreen extends StatefulWidget {
@@ -29,27 +31,28 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen> {
       }
 
       final response = await http.get(
-        Uri.parse(social_issues_endpoint), // Replace this with your actual API URL
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse(
+          social_issues_endpoint,
+        ), // Replace this with your actual API URL
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        complaints = data.map((item) {
-          DateTime createdAt = DateTime.parse(item['created_at']);
-          return {
-            "date":
-            "${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year}",
-            "title": item['title'],
-            "time":
-            "${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')} ${createdAt.hour < 12 ? 'AM' : 'PM'}",
-            "details": item['description'],
-            "likes": 0,
-            "hasLiked": false,
-          };
-        }).toList();
+        complaints =
+            data.map((item) {
+              DateTime createdAt = DateTime.parse(item['created_at']);
+              return {
+                "date":
+                    "${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year}",
+                "title": item['title'],
+                "time":
+                    "${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')} ${createdAt.hour < 12 ? 'AM' : 'PM'}",
+                "details": item['description'],
+                "likes": 0,
+                "hasLiked": false,
+              };
+            }).toList();
 
         setState(() {
           _filteredComplaints = List.from(complaints);
@@ -68,9 +71,12 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen> {
   }
 
   void _searchComplaints(String query) {
-    final results = complaints.where((complaint) {
-      return complaint['title']!.toLowerCase().contains(query.toLowerCase());
-    }).toList();
+    final results =
+        complaints.where((complaint) {
+          return complaint['title']!.toLowerCase().contains(
+            query.toLowerCase(),
+          );
+        }).toList();
 
     setState(() {
       _filteredComplaints = results;
@@ -87,27 +93,12 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen> {
     final middleBlueColor = Color(0xFF2F4F78);
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [middleBlueColor, Color(0xFF14213D)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-        title: const Text('Social-issues', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white, size: 30),
-          onPressed: () {},
-        ),
-      ),
+      appBar: GAppBar(title: "Social-Issues"),
+
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(10.0),
             child: TextField(
               controller: _searchController,
               onChanged: _searchComplaints,
@@ -119,30 +110,31 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen> {
             ),
           ),
           Expanded(
-            child: _filteredComplaints.isEmpty
-                ? Center(child: Text("No complaints found"))
-                : ListView.builder(
-              itemCount: _filteredComplaints.length,
-              itemBuilder: (context, index) {
-                return ComplaintBox(
-                  date: _filteredComplaints[index]["date"],
-                  title: _filteredComplaints[index]["title"],
-                  time: _filteredComplaints[index]["time"],
-                  details: _filteredComplaints[index]["details"],
-                  likes: _filteredComplaints[index]["likes"],
-                  middleBlueColor: middleBlueColor,
-                  onLikePressed: () {
-                    setState(() {
-                      if (!_filteredComplaints[index]['hasLiked']) {
-                        _filteredComplaints[index]['likes']++;
-                        _filteredComplaints[index]['hasLiked'] = true;
-                      }
-                    });
-                    _sortComplaintsByLikes();
-                  },
-                );
-              },
-            ),
+            child:
+                _filteredComplaints.isEmpty
+                    ? Center(child: Text("No complaints found"))
+                    : ListView.builder(
+                      itemCount: _filteredComplaints.length,
+                      itemBuilder: (context, index) {
+                        return ComplaintBox(
+                          date: _filteredComplaints[index]["date"],
+                          title: _filteredComplaints[index]["title"],
+                          time: _filteredComplaints[index]["time"],
+                          details: _filteredComplaints[index]["details"],
+                          likes: _filteredComplaints[index]["likes"],
+                          middleBlueColor: middleBlueColor,
+                          onLikePressed: () {
+                            setState(() {
+                              if (!_filteredComplaints[index]['hasLiked']) {
+                                _filteredComplaints[index]['likes']++;
+                                _filteredComplaints[index]['hasLiked'] = true;
+                              }
+                            });
+                            _sortComplaintsByLikes();
+                          },
+                        );
+                      },
+                    ),
           ),
         ],
       ),
@@ -199,9 +191,9 @@ class _ComplaintBoxState extends State<ComplaintBox> {
                 Expanded(
                   child: Text(
                     widget.title,
-                    style: TextStyle(
+                    style: GoogleFonts.poppins(
                       fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                      fontSize: 17,
                       color: widget.middleBlueColor,
                     ),
                   ),
@@ -213,13 +205,19 @@ class _ComplaintBoxState extends State<ComplaintBox> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(widget.date, style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  widget.date,
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(widget.time, style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  widget.time,
+                  style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -230,7 +228,7 @@ class _ComplaintBoxState extends State<ComplaintBox> {
                   : widget.details.length > 60
                   ? '${widget.details.substring(0, 60)}.....'
                   : widget.details,
-              style: TextStyle(fontSize: 16),
+              style: GoogleFonts.poppins(fontSize: 15),
             ),
             const SizedBox(height: 10),
 
@@ -243,10 +241,7 @@ class _ComplaintBoxState extends State<ComplaintBox> {
                 },
                 child: Text(
                   _isExpanded ? "Show Less" : "See more",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: widget.middleBlueColor,
-                  ),
+                  style: TextStyle(fontSize: 16, color: widget.middleBlueColor),
                 ),
               ),
 
@@ -277,6 +272,5 @@ class _ComplaintBoxState extends State<ComplaintBox> {
         ),
       ),
     );
-
   }
 }

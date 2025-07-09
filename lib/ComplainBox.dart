@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:murir_tin/Component.dart';
 
 import 'api.dart';
 
@@ -51,27 +53,24 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
       });
     } catch (e) {
       print("Error loading companies: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load bus companies')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load bus companies')));
     }
   }
 
   Future<List<Map<String, dynamic>>> fetchBusCompanies(String jwtToken) async {
     final response = await http.get(
       Uri.parse(complaints_companies_endpoint),
-      headers: {
-        'Authorization': 'Bearer $jwtToken',
-      },
+      headers: {'Authorization': 'Bearer $jwtToken'},
     );
 
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
       return data
-          .map<Map<String, dynamic>>((item) => {
-        'id': item['id'],
-        'name': item['name'],
-      })
+          .map<Map<String, dynamic>>(
+            (item) => {'id': item['id'], 'name': item['name']},
+          )
           .toList();
     } else {
       throw Exception('Failed to load companies');
@@ -111,46 +110,8 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
       ..sort((a, b) => a['name'].compareTo(b['name']));
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                middleBlueColor,
-                Color(0xFF14213D),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-        title: const Text(
-          'Complaint Box',
-          style: TextStyle(color: Colors.white),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: widget.profilePicUrl != null &&
-                widget.profilePicUrl!.isNotEmpty
-                ? CircleAvatar(
-              backgroundImage: NetworkImage(widget.profilePicUrl!),
-              backgroundColor: Colors.white,
-            )
-                : const CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Colors.black),
-            ),
-            onPressed: () {
-              // Optional: handle profile tap
-            },
-          ),
-        ],
-      ),
+      appBar: GAppBar(title: "Complaint Box"),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -158,7 +119,7 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
           children: [
             Text(
               "Company",
-              style: TextStyle(fontSize: 20, color: middleBlueColor),
+              style: GoogleFonts.poppins(fontSize: 18, color: middleBlueColor),
             ),
             GestureDetector(
               onTap: () {
@@ -166,9 +127,12 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
                   _isSearching = true;
                 });
               },
+             
               child: Container(
-                padding:
-                const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: middleBlueColor),
                   borderRadius: BorderRadius.circular(8),
@@ -179,9 +143,10 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
                     Text(
                       _selectedCompany ?? 'Select Bus Company',
                       style: TextStyle(
-                        color: _selectedCompany == null
-                            ? Colors.grey[600]
-                            : selectedTextColor,
+                        color:
+                            _selectedCompany == null
+                                ? Colors.grey[600]
+                                : selectedTextColor,
                       ),
                     ),
                     const Icon(Icons.arrow_drop_down),
@@ -194,52 +159,58 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
                 padding: const EdgeInsets.only(top: 8),
                 child: SingleChildScrollView(
                   child: Column(
-                    children: sortedBusCompanies.map((company) {
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedCompany = company['name'];
-                            _isSearching = false;
-                          });
-                        },
-                        child: Center(
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 5),
-                            decoration: BoxDecoration(
-                              color: _selectedCompany == company['name']
-                                  ? Colors.blue[300]
-                                  : Colors.blue[100],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: middleBlueColor),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 16),
-                            child: Text(
-                              company['name'],
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: _selectedCompany == company['name']
-                                    ? selectedTextColor
-                                    : Colors.black,
+                    children:
+                        sortedBusCompanies.map((company) {
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedCompany = company['name'];
+                                _isSearching = false;
+                              });
+                            },
+                            child: Center(
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(vertical: 5),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _selectedCompany == company['name']
+                                          ? Colors.blue[300]
+                                          : Colors.blue[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: middleBlueColor),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                  horizontal: 16,
+                                ),
+                                child: Text(
+                                  company['name'],
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 18,
+                                    color:
+                                        _selectedCompany == company['name']
+                                            ? selectedTextColor
+                                            : Colors.black,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          );
+                        }).toList(),
                   ),
                 ),
               ),
             const SizedBox(height: 20),
             Text(
               "Title",
-              style: TextStyle(fontSize: 20, color: middleBlueColor),
+              style: GoogleFonts.poppins(fontSize: 20, color: middleBlueColor),
             ),
+            const SizedBox(height:10),
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
                 hintText: 'Give title of your complaint',
-                hintStyle: TextStyle(color: Colors.grey[600]),
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[600]),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: middleBlueColor),
                 ),
@@ -248,14 +219,15 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
             const SizedBox(height: 20),
             Text(
               "Description",
-              style: TextStyle(fontSize: 20, color: middleBlueColor),
+              style: GoogleFonts.poppins(fontSize: 19, color: middleBlueColor),
             ),
+            const SizedBox(height:10),
             TextField(
               controller: _descriptionController,
               maxLines: 5,
               decoration: InputDecoration(
                 hintText: 'Give details about your complaint',
-                hintStyle: TextStyle(color: Colors.grey[600]),
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[600]),
                 border: OutlineInputBorder(
                   borderSide: BorderSide(color: middleBlueColor),
                 ),
@@ -264,53 +236,58 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
             const SizedBox(height: 20),
             Center(
               child: ElevatedButton(
-                onPressed: _isSubmitted
-                    ? null
-                    : () async {
-                  if (_selectedCompany == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Please select a company')),
-                    );
-                    return;
-                  }
+                onPressed:
+                    _isSubmitted
+                        ? null
+                        : () async {
+                          if (_selectedCompany == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Please select a company'),
+                              ),
+                            );
+                            return;
+                          }
 
-                  try {
-                    final jwtToken = await _secureStorage.read(
-                        key: 'jwt_token');
-                    if (jwtToken == null) {
-                      throw Exception('JWT token not found');
-                    }
+                          try {
+                            final jwtToken = await _secureStorage.read(
+                              key: 'jwt_token',
+                            );
+                            if (jwtToken == null) {
+                              throw Exception('JWT token not found');
+                            }
 
-                    final company = busCompanies.firstWhere(
-                            (c) => c['name'] == _selectedCompany);
-                    final companyId = company['id'].toString();
+                            final company = busCompanies.firstWhere(
+                              (c) => c['name'] == _selectedCompany,
+                            );
+                            final companyId = company['id'].toString();
 
-                    await submitComplaint(
-                      jwtToken: jwtToken,
-                      title: _titleController.text,
-                      description: _descriptionController.text,
-                      companyId: companyId,
-                    );
+                            await submitComplaint(
+                              jwtToken: jwtToken,
+                              title: _titleController.text,
+                              description: _descriptionController.text,
+                              companyId: companyId,
+                            );
 
-                    setState(() {
-                      _isSubmitted = true;
-                    });
+                            setState(() {
+                              _isSubmitted = true;
+                            });
 
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Complaint Submitted')),
-                    );
-                  } catch (e) {
-                    print("Error submitting complaint: $e");
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Failed to submit complaint')),
-                    );
-                  }
-                },
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Complaint Submitted')),
+                            );
+                          } catch (e) {
+                            print("Error submitting complaint: $e");
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to submit complaint'),
+                              ),
+                            );
+                          }
+                        },
                 child: Text(
                   _isSubmitted ? "Submitted" : "Submit",
-                  style: TextStyle(fontSize: 20, color: Colors.white),
+                  style: GoogleFonts.poppins(fontSize: 20, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: middleBlueColor,

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+
+import 'package:murir_tin/Component.dart';
 
 class StatusScreen extends StatefulWidget {
   final int complaintId;
@@ -49,7 +52,10 @@ class _StatusScreenState extends State<StatusScreen> {
         setState(() {
           description = data['description'];
           final status = data['status'];
-          isSubmitted = status == 'submitted' || status == 'accepted' || status == 'solved';
+          isSubmitted =
+              status == 'submitted' ||
+              status == 'accepted' ||
+              status == 'solved';
           isAccepted = status == 'accepted' || status == 'solved';
           isSolved = status == 'solved';
           isLoading = false;
@@ -72,78 +78,83 @@ class _StatusScreenState extends State<StatusScreen> {
     final greenColor = Colors.green;
 
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 80,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [middleBlueColor, Color(0xFF14213D)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-        title: const Text(
-          'Current Status',
-          style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Colors.black),
-            ),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                buildStatusItem('Submitted', isSubmitted, middleBlueColor),
-                buildConnectionLine(isSubmitted, isAccepted, connectionLineColor, greenColor),
-                buildStatusItem('Accepted', isAccepted, middleBlueColor),
-                buildConnectionLine(isAccepted, isSolved, connectionLineColor, greenColor),
-                buildStatusItem('Solved', isSolved, middleBlueColor),
-              ],
-            ),
-            SizedBox(height: 20),
-            Text(
-              'Complaint Details:',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: middleBlueColor),
-            ),
-            SizedBox(height: 10),
-            Container(
-              padding: EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(color: middleBlueColor),
-              ),
-              child: Text(description, style: TextStyle(fontSize: 16)),
-            ),
-            SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: middleBlueColor,
-                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+      appBar: GAppBar(title: "Current Status"),
+
+      body:
+          isLoading
+              ? Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        buildStatusItem(
+                          'Submitted',
+                          isSubmitted,
+                          middleBlueColor,
+                        ),
+                        buildConnectionLine(
+                          isSubmitted,
+                          isAccepted,
+                          connectionLineColor,
+                          greenColor,
+                        ),
+                        buildStatusItem(
+                          'Accepted',
+                          isAccepted,
+                          middleBlueColor,
+                        ),
+                        buildConnectionLine(
+                          isAccepted,
+                          isSolved,
+                          connectionLineColor,
+                          greenColor,
+                        ),
+                        buildStatusItem('Solved', isSolved, middleBlueColor),
+                      ],
+                    ),
+                    SizedBox(height: 25),
+                    Text(
+                      'Complaint Details:',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: middleBlueColor,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Container(
+                      padding: EdgeInsets.all(12.0),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8.0),
+                        border: Border.all(color: middleBlueColor),
+                      ),
+                      child: Text(description, style: GoogleFonts.poppins(fontSize: 14)),
+                    ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: middleBlueColor,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 50,
+                            vertical: 10,
+                          ),
+                        ),
+                        child: Text(
+                          "Back",
+                          style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Text("Back", style: TextStyle(fontSize: 18, color: Colors.white)),
               ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -169,7 +180,11 @@ class _StatusScreenState extends State<StatusScreen> {
   }
 
   Widget buildConnectionLine(
-      bool first, bool second, Color lineColor, Color greenColor) {
+    bool first,
+    bool second,
+    Color lineColor,
+    Color greenColor,
+  ) {
     return Expanded(
       child: Container(
         height: 2,

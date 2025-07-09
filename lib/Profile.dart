@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:murir_tin/Component.dart';
 import 'package:murir_tin/api.dart';
 import 'EditProfile.dart';
 
@@ -74,75 +76,70 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
     final darkBlueColor = Color(0xFF14213D);
 
     return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [middleBlueColor, darkBlueColor],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white, size: 30),
-          onPressed: () {},
-        ),
-        title: const Text('My Profile', style: TextStyle(color: Colors.white)),
-        centerTitle: true,
-      ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : errorMessage.isNotEmpty
-          ? Center(child: Text(errorMessage, style: TextStyle(color: Colors.red)))
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: <Widget>[
-            CircleAvatar(
-              radius: 100,
-              backgroundImage: NetworkImage(profilePicUrl),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              username.isEmpty ? 'N/A' : username,
-              style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: middleBlueColor),
-            ),
-            const SizedBox(height: 16),
-
-            _buildInfoBox("Email", email, darkBlueColor),
-            _buildInfoBox("Phone Number", phoneNumber, darkBlueColor),
-
-            ElevatedButton(
-              onPressed: () async {
-                final updated = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EditProfileScreen(
-                      username: username,
-                      email: email,
-                      phone: phoneNumber,
+      appBar: GAppBar(title: "My Profile"),
+      body:
+          isLoading
+              ? Center(child: CircularProgressIndicator())
+              : errorMessage.isNotEmpty
+              ? Center(
+                child: Text(errorMessage, style: TextStyle(color: Colors.red)),
+              )
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: <Widget>[
+                    CircleAvatar(
+                      radius: 100,
+                      backgroundImage: NetworkImage(profilePicUrl),
                     ),
-                  ),
-                );
+                    const SizedBox(height: 16),
+                    Text(
+                      username.isEmpty ? 'N/A' : username,
+                      style: GoogleFonts.poppins(
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        color: middleBlueColor,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
 
-                if (updated == true) {
-                  fetchUserProfile(); // Refresh after edit
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size(150, 50),
-                backgroundColor: middleBlueColor,
+                    _buildInfoBox("Email", email, darkBlueColor),
+                    _buildInfoBox("Phone Number", phoneNumber, darkBlueColor),
+
+                    ElevatedButton(
+                      onPressed: () async {
+                        final updated = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => EditProfileScreen(
+                                  username: username,
+                                  email: email,
+                                  phone: phoneNumber,
+                                ),
+                          ),
+                        );
+
+                        if (updated == true) {
+                          fetchUserProfile(); // Refresh after edit
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(150, 50),
+                        backgroundColor: middleBlueColor,
+                      ),
+
+                      child: Text(
+                        'Edit Profile',
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Text('Edit Profile',
-                  style: TextStyle(fontSize: 18, color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -156,12 +153,19 @@ class _MyProfileScreenState extends State<MyProfileScreen> {
       ),
       child: Row(
         children: [
-          Text(label,
-              style:
-              TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: labelColor)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: labelColor,
+            ),
+          ),
           Spacer(),
-          Text(value.isEmpty ? 'N/A' : value,
-              style: TextStyle(fontSize: 16, color: Colors.black)),
+          Text(
+            value.isEmpty ? 'N/A' : value,
+            style: TextStyle(fontSize: 16, color: Colors.black),
+          ),
         ],
       ),
     );
