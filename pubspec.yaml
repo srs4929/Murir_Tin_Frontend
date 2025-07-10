@@ -53,6 +53,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   jwt_decoder: ^2.0.1
   image_picker: ^1.0.4
+  bkash: ^0.0.2
 
   path: ^1.9.1
 dev_dependencies:

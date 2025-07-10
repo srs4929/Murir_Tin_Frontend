@@ -3,6 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'api.dart';
+
 class StatusScreen extends StatefulWidget {
   final int complaintId;
 
@@ -15,7 +17,7 @@ class StatusScreen extends StatefulWidget {
 class _StatusScreenState extends State<StatusScreen> {
   final _secureStorage = FlutterSecureStorage();
 
-  bool isSubmitted = false;
+  bool isPending = false;
   bool isAccepted = false;
   bool isSolved = false;
   String description = '';
@@ -37,7 +39,7 @@ class _StatusScreenState extends State<StatusScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('http://192.168.0.106:8000/complaint/${widget.complaintId}'),
+        Uri.parse('$complaints_endpoint${widget.complaintId}'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -49,7 +51,7 @@ class _StatusScreenState extends State<StatusScreen> {
         setState(() {
           description = data['description'];
           final status = data['status'];
-          isSubmitted = status == 'submitted' || status == 'accepted' || status == 'solved';
+          isPending = status == 'pending' || status == 'accepted' || status == 'solved';
           isAccepted = status == 'accepted' || status == 'solved';
           isSolved = status == 'solved';
           isLoading = false;
@@ -108,8 +110,8 @@ class _StatusScreenState extends State<StatusScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                buildStatusItem('Submitted', isSubmitted, middleBlueColor),
-                buildConnectionLine(isSubmitted, isAccepted, connectionLineColor, greenColor),
+                buildStatusItem('Pending', isPending, middleBlueColor),
+                buildConnectionLine(isPending, isAccepted, connectionLineColor, greenColor),
                 buildStatusItem('Accepted', isAccepted, middleBlueColor),
                 buildConnectionLine(isAccepted, isSolved, connectionLineColor, greenColor),
                 buildStatusItem('Solved', isSolved, middleBlueColor),

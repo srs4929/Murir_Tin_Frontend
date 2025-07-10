@@ -1,4 +1,4 @@
-String BASE_URL = "https://murir-tin-server.vercel.app";
+String BASE_URL = "http://192.168.0.106:8000";
 
 String login_endpoint = BASE_URL + "/auth/token";
 String signup_endpoint = BASE_URL + "/auth/signup";
@@ -11,4 +11,4 @@ String user_info = BASE_URL + "/profile/info";
 String update_profile = BASE_URL + "/profile/update";
 String social_issues_endpoint = BASE_URL + "/issues";
 String complaint_status_endpoint = BASE_URL + "/complaints/user";
-String complaint_status_details = BASE_URL + "/issues/complaint";
+String complaint_status_details = BASE_URL + "/complaints/";

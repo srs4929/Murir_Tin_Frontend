@@ -1,13 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'package:murir_tin/Checkout.dart';
 import 'package:murir_tin/Component.dart';
 import 'package:murir_tin/CustomBookText.dart';
-import 'package:murir_tin/PaymentDialog.dart';
 import 'package:murir_tin/QRcode.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 import 'package:murir_tin/api.dart';
 
 class Bookticket extends StatefulWidget {
@@ -24,23 +23,22 @@ class _BookticketState extends State<Bookticket> {
   final _storage = const FlutterSecureStorage();
 
   int? _ticketCount;
-  int? _totalCost;
+  double? _totalCost;
   String? _bookingId;
 
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder:
-          (_) => AlertDialog(
-            title: const Text("Error"),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
+      builder: (_) => AlertDialog(
+        title: const Text("Error"),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
           ),
+        ],
+      ),
     );
   }
 
@@ -74,16 +72,15 @@ class _BookticketState extends State<Bookticket> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => const AlertDialog(
-            content: Row(
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 20),
-                Text("Booking tickets..."),
-              ],
-            ),
-          ),
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text("Booking tickets..."),
+          ],
+        ),
+      ),
     );
 
     try {
@@ -116,7 +113,7 @@ class _BookticketState extends State<Bookticket> {
 
         setState(() {
           _ticketCount = responseData['ticket_count'];
-          _totalCost = responseData['total_cost'];
+          _totalCost = (responseData['total_cost'] as num).toDouble();
           _bookingId = responseData['booking_id'];
         });
 
@@ -128,15 +125,12 @@ class _BookticketState extends State<Bookticket> {
         );
       } else {
         final errorData = json.decode(response.body);
-        final errorMessage =
-            errorData['detail'] ?? "An unknown error occurred.";
+        final errorMessage = errorData['detail'] ?? "An unknown error occurred.";
         _showErrorDialog(errorMessage);
       }
     } on http.ClientException catch (e) {
       Navigator.pop(context);
-      _showErrorDialog(
-        "Network error: Failed to connect to the server. Is FastAPI running? (${e.message})",
-      );
+      _showErrorDialog("Network error: Failed to connect to the server. Is FastAPI running? (${e.message})");
     } catch (e) {
       Navigator.pop(context);
       _showErrorDialog("An unexpected error occurred: $e");
@@ -161,10 +155,10 @@ class _BookticketState extends State<Bookticket> {
                     width: MediaQuery.of(context).size.width * 0.85,
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
+                      gradient: const LinearGradient(
                         colors: [
-                          const Color.fromARGB(255, 62, 87, 141),
-                          const Color(0xFF4B6EAF),
+                          Color.fromARGB(255, 62, 87, 141),
+                          Color(0xFF4B6EAF),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -198,7 +192,6 @@ class _BookticketState extends State<Bookticket> {
                           prefixIcon: Icons.my_location,
                           controller: fromController,
                         ),
-
                         const SizedBox(height: 20),
 
                         // To input
@@ -208,7 +201,6 @@ class _BookticketState extends State<Bookticket> {
                           prefixIcon: Icons.location_on,
                           controller: toController,
                         ),
-
                         const SizedBox(height: 22),
 
                         // Number of tickets
@@ -218,10 +210,8 @@ class _BookticketState extends State<Bookticket> {
                           prefixIcon: Icons.confirmation_number,
                           controller: ticketController,
                         ),
-
                         const SizedBox(height: 22),
 
-                        // Show total cost if booked
                         if (_totalCost != null)
                           Text(
                             "Total cost: ৳$_totalCost",
@@ -231,7 +221,6 @@ class _BookticketState extends State<Bookticket> {
                               color: Colors.white,
                             ),
                           ),
-
                         const SizedBox(height: 10),
 
                         SizedBox(
@@ -263,18 +252,15 @@ class _BookticketState extends State<Bookticket> {
             alignment: Alignment.bottomCenter,
             child: GestureDetector(
               onTap: () {
-                if (_ticketCount != null &&
-                    _totalCost != null &&
-                    _bookingId != null) {
+                if (_ticketCount != null && _totalCost != null && _bookingId != null) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder:
-                          (context) => PaymentDialog(
-                            ticketCount: _ticketCount!, //  the variable here
-
-                            bookingId: _bookingId!,
-                          ),
+                      builder: (context) => Checkout(
+                        totalCost: _totalCost ?? 0.0,
+                        ticketCount: _ticketCount ?? 0,
+                        bookingId: _bookingId ?? "",
+                      ),
                     ),
                   );
                 } else {
@@ -309,3 +295,4 @@ class _BookticketState extends State<Bookticket> {
     );
   }
 }
+

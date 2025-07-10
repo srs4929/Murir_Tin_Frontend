@@ -305,14 +305,10 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
             ),
           ),
         ),
-        actions: const [
+        actions: [
           Padding(
             padding: EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.person, color: Color(0xFF14213D)),
-            ),
+            child: _buildProfileAvatar(radius: 18, iconSize: 18),
           ),
         ],
       ),
@@ -331,14 +327,9 @@ class _LandingpageState extends State<Landingpage> with WidgetsBindingObserver {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircleAvatar(
+                  _buildProfileAvatar(
                     radius: screenWidth * 0.1,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.person,
-                      size: screenWidth * 0.13,
-                      color: const Color(0xFF14213D),
-                    ),
+                    iconSize: screenWidth * 0.13,
                   ),
                   SizedBox(height: screenHeight * 0.01),
                   Text(

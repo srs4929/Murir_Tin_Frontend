@@ -5,11 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
-// Assuming these are correctly defined elsewhere in your project
-import 'package:murir_tin/Component.dart'; // For GAppBar
-import 'api.dart'; // For qr_code_endpoint
 
-// --- TicketData model (kept as is, it's necessary for fetching and encoding) ---
+import 'package:murir_tin/Component.dart';
+import 'api.dart';
+
+
 class TicketData {
   final int id;
   final String userId;
@@ -53,7 +53,7 @@ class TicketData {
     };
   }
 }
-// --- End of TicketData model ---
+
 
 
 class Qrcode extends StatefulWidget {
