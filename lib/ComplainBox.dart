@@ -459,7 +459,7 @@ class _ComplaintBoxScreenState extends State<ComplaintBoxScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
-                            Icons.airplane_ticket_rounded,
+                            Icons.directions_bus,
                             color: middleBlueColor,
                             size: 20,
                           ),

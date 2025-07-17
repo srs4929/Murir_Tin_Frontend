@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'Login.dart';
+import 'api.dart';
 import 'utils/beautiful_alerts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -62,10 +66,7 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
     final phone = _phoneController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username.isEmpty ||
-        email.isEmpty ||
-        phone.isEmpty ||
-        password.isEmpty) {
+    if (username.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
       _showErrorDialog("Please fill in all fields.");
       return;
     }
@@ -85,35 +86,45 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
     });
 
     try {
-      await Future.delayed(const Duration(seconds: 2)); // Simulate API call
 
-      if (mounted) {
-        BeautifulAlerts.showSuccessSnackBar(context, "Signup Successful!");
 
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder:
-                (context, animation, secondaryAnimation) => const Login(),
-            transitionsBuilder: (
-              context,
-              animation,
-              secondaryAnimation,
-              child,
-            ) {
-              return SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(-1.0, 0.0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              );
-            },
-          ),
-        );
+      final response = await http.post(
+        Uri.parse(signup_endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'email': email,
+          'phone': phone,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (mounted) {
+          BeautifulAlerts.showSuccessSnackBar(context, "Signup Successful!");
+
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) => const Login(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(-1.0, 0.0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                );
+              },
+            ),
+          );
+        }
+      } else {
+        final errorMsg = jsonDecode(response.body)['detail'] ?? "Signup failed.";
+        _showErrorDialog(errorMsg.toString());
       }
     } catch (e) {
-      _showErrorDialog("An unexpected error occurred. Please try again.");
+      _showErrorDialog("An error occurred: ${e.toString()}");
     } finally {
       if (mounted) {
         setState(() {
@@ -122,6 +133,7 @@ class _SignupState extends State<Signup> with TickerProviderStateMixin {
       }
     }
   }
+
 
   @override
   void dispose() {

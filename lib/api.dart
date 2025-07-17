@@ -1,5 +1,3 @@
-// ignore_for_file: non_constant_identifier_names, prefer_interpolation_to_compose_strings
-
 String BASE_URL = "https://murir-tin-server.vercel.app";
 String BASE_URL_LOCAL = "http://192.168.0.158:8000";
 
