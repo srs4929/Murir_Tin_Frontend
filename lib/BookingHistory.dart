@@ -35,7 +35,8 @@ class _BookingHistoryPageState extends State<Bookinghistory> {
     final bookingResponse = await supabase
         .from('ticket_booking')
         .select()
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .order('booking_time', ascending: false);
 
     return bookingResponse;
   }
@@ -196,12 +197,14 @@ class _BookingHistoryPageState extends State<Bookinghistory> {
                     final bookingDateTime = DateTime.parse(
                       booking['booking_time'],
                     );
+                    // Add 6 hours for GMT+6 timezone
+                    final localDateTime = bookingDateTime.add(
+                      Duration(hours: 6),
+                    );
                     final formattedDate = DateFormat.yMMMd().format(
-                      bookingDateTime,
+                      localDateTime,
                     );
-                    final formattedTime = DateFormat.jm().format(
-                      bookingDateTime,
-                    );
+                    final formattedTime = DateFormat.jm().format(localDateTime);
 
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 300),

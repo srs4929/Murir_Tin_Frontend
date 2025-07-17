@@ -21,7 +21,13 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
 
   List<Map<String, dynamic>> complaints = [];
   List<Map<String, dynamic>> _myComplaints = [];
+  List<Map<String, dynamic>> _filteredComplaints = [];
+  List<Map<String, dynamic>> _filteredMyComplaints = [];
   bool _isLoading = true;
+
+  // Filter states
+  Set<String> _selectedFilters = {};
+  final List<String> _filterOptions = ['submitted', 'accepted', 'solved'];
 
   @override
   void initState() {
@@ -35,6 +41,114 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
     _searchController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _applyFilters() {
+    // Start with base data or searched data
+    List<Map<String, dynamic>> baseComplaints = complaints;
+    List<Map<String, dynamic>> baseMyComplaints = _myComplaints;
+
+    // Apply search if there's a query
+    final query = _searchController.text;
+    if (query.isNotEmpty) {
+      baseComplaints =
+          complaints.where((complaint) {
+            final title = complaint['title']?.toString().toLowerCase() ?? '';
+            final details =
+                complaint['details']?.toString().toLowerCase() ?? '';
+            final category =
+                complaint['category']?.toString().toLowerCase() ?? '';
+            final searchQuery = query.toLowerCase();
+
+            return title.contains(searchQuery) ||
+                details.contains(searchQuery) ||
+                category.contains(searchQuery);
+          }).toList();
+
+      baseMyComplaints =
+          _myComplaints.where((complaint) {
+            final title = complaint['title']?.toString().toLowerCase() ?? '';
+            final details =
+                complaint['details']?.toString().toLowerCase() ?? '';
+            final category =
+                complaint['category']?.toString().toLowerCase() ?? '';
+            final searchQuery = query.toLowerCase();
+
+            return title.contains(searchQuery) ||
+                details.contains(searchQuery) ||
+                category.contains(searchQuery);
+          }).toList();
+    }
+
+    setState(() {
+      if (_selectedFilters.isEmpty) {
+        _filteredComplaints = List.from(baseComplaints);
+        _filteredMyComplaints = List.from(baseMyComplaints);
+      } else {
+        _filteredComplaints =
+            baseComplaints.where((complaint) {
+              final status =
+                  complaint['status']?.toString().toLowerCase() ?? 'open';
+              return _selectedFilters.any((filter) {
+                switch (filter) {
+                  case 'submitted':
+                    return status == 'open' || status == 'submitted';
+                  case 'accepted':
+                    return status == 'in_progress' ||
+                        status == 'investigating' ||
+                        status == 'accepted';
+                  case 'solved':
+                    return status == 'resolved' ||
+                        status == 'closed' ||
+                        status == 'solved';
+                  default:
+                    return false;
+                }
+              });
+            }).toList();
+
+        _filteredMyComplaints =
+            baseMyComplaints.where((complaint) {
+              final status =
+                  complaint['status']?.toString().toLowerCase() ?? 'open';
+              return _selectedFilters.any((filter) {
+                switch (filter) {
+                  case 'submitted':
+                    return status == 'open' || status == 'submitted';
+                  case 'accepted':
+                    return status == 'in_progress' ||
+                        status == 'investigating' ||
+                        status == 'accepted';
+                  case 'solved':
+                    return status == 'resolved' ||
+                        status == 'closed' ||
+                        status == 'solved';
+                  default:
+                    return false;
+                }
+              });
+            }).toList();
+      }
+
+      // Sort by recent
+      _filteredComplaints.sort(
+        (a, b) => b['createdAt'].compareTo(a['createdAt']),
+      );
+      _filteredMyComplaints.sort(
+        (a, b) => b['createdAt'].compareTo(a['createdAt']),
+      );
+    });
+  }
+
+  void _toggleFilter(String filter) {
+    setState(() {
+      if (_selectedFilters.contains(filter)) {
+        _selectedFilters.remove(filter);
+      } else {
+        _selectedFilters.add(filter);
+      }
+      _applyFilters();
+    });
   }
 
   Future<void> fetchComplaints() async {
@@ -80,6 +194,7 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
         setState(() {
           _isLoading = false;
         });
+        _filteredComplaints = List.from(complaints);
         await fetchMyComplaints();
       } else {
         throw Exception("Failed to fetch complaints: ${response.statusCode}");
@@ -134,6 +249,7 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
                   "status": item['status'] ?? 'Open',
                 };
               }).toList();
+          _filteredMyComplaints = List.from(_myComplaints);
         });
       }
     } catch (e) {
@@ -176,18 +292,98 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
 
   void _searchComplaints(String query) {
     setState(() {
-      // Search functionality can be re-implemented later if needed
-      // For now, we'll just sort by recent by default
-      complaints.sort((a, b) => b['createdAt'].compareTo(a['createdAt']));
-    });
+      if (query.isEmpty) {
+        // If no search query, just apply filters
+        _applyFilters();
+      } else {
+        // Apply search to the base data, then apply filters
+        List<Map<String, dynamic>> searchedComplaints =
+            complaints.where((complaint) {
+              final title = complaint['title']?.toString().toLowerCase() ?? '';
+              final details =
+                  complaint['details']?.toString().toLowerCase() ?? '';
+              final category =
+                  complaint['category']?.toString().toLowerCase() ?? '';
+              final searchQuery = query.toLowerCase();
 
-    // Show info snackbar when search is performed
-    if (query.isNotEmpty) {
-      BeautifulAlerts.showInfoSnackBar(
-        context,
-        "Search functionality coming soon. Showing all issues.",
+              return title.contains(searchQuery) ||
+                  details.contains(searchQuery) ||
+                  category.contains(searchQuery);
+            }).toList();
+
+        List<Map<String, dynamic>> searchedMyComplaints =
+            _myComplaints.where((complaint) {
+              final title = complaint['title']?.toString().toLowerCase() ?? '';
+              final details =
+                  complaint['details']?.toString().toLowerCase() ?? '';
+              final category =
+                  complaint['category']?.toString().toLowerCase() ?? '';
+              final searchQuery = query.toLowerCase();
+
+              return title.contains(searchQuery) ||
+                  details.contains(searchQuery) ||
+                  category.contains(searchQuery);
+            }).toList();
+
+        // Apply filters to searched results
+        if (_selectedFilters.isEmpty) {
+          _filteredComplaints = searchedComplaints;
+          _filteredMyComplaints = searchedMyComplaints;
+        } else {
+          _filteredComplaints =
+              searchedComplaints.where((complaint) {
+                final status =
+                    complaint['status']?.toString().toLowerCase() ?? 'open';
+                return _selectedFilters.any((filter) {
+                  switch (filter) {
+                    case 'submitted':
+                      return status == 'open' || status == 'submitted';
+                    case 'accepted':
+                      return status == 'in_progress' ||
+                          status == 'investigating' ||
+                          status == 'accepted';
+                    case 'solved':
+                      return status == 'resolved' ||
+                          status == 'closed' ||
+                          status == 'solved';
+                    default:
+                      return false;
+                  }
+                });
+              }).toList();
+
+          _filteredMyComplaints =
+              searchedMyComplaints.where((complaint) {
+                final status =
+                    complaint['status']?.toString().toLowerCase() ?? 'open';
+                return _selectedFilters.any((filter) {
+                  switch (filter) {
+                    case 'submitted':
+                      return status == 'open' || status == 'submitted';
+                    case 'accepted':
+                      return status == 'in_progress' ||
+                          status == 'investigating' ||
+                          status == 'accepted';
+                    case 'solved':
+                      return status == 'resolved' ||
+                          status == 'closed' ||
+                          status == 'solved';
+                    default:
+                      return false;
+                  }
+                });
+              }).toList();
+        }
+      }
+
+      // Sort by recent
+      _filteredComplaints.sort(
+        (a, b) => b['createdAt'].compareTo(a['createdAt']),
       );
-    }
+      _filteredMyComplaints.sort(
+        (a, b) => b['createdAt'].compareTo(a['createdAt']),
+      );
+    });
   }
 
   Future<void> _toggleLike(String complaintId) async {
@@ -400,7 +596,7 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
                                     ),
                                   ),
                                   Text(
-                                    '${complaints.length} issues reported',
+                                    '${_filteredComplaints.length} issues shown',
                                     style: GoogleFonts.poppins(
                                       fontSize: 14,
                                       color: Colors.white.withOpacity(0.9),
@@ -498,6 +694,87 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
                             ),
                           ),
                         ),
+                        SizedBox(height: 16),
+                        // Filter Chips
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.filter_alt_outlined,
+                                color: Colors.white.withOpacity(0.9),
+                                size: 18,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Filter by:',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 13,
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children:
+                                        _filterOptions.map((filter) {
+                                          final isSelected = _selectedFilters
+                                              .contains(filter);
+                                          return Container(
+                                            margin: EdgeInsets.only(right: 8),
+                                            child: FilterChip(
+                                              label: Text(
+                                                filter.toUpperCase(),
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      isSelected
+                                                          ? Colors.white
+                                                          : Colors.black,
+                                                ),
+                                              ),
+                                              selected: isSelected,
+                                              onSelected:
+                                                  (selected) =>
+                                                      _toggleFilter(filter),
+                                              selectedColor: middleBlueColor,
+                                              backgroundColor:
+                                                  isSelected
+                                                      ? Colors.white
+                                                          .withOpacity(0.15)
+                                                      : Colors.white
+                                                          .withOpacity(0.9),
+                                              checkmarkColor: Colors.white,
+                                              side: BorderSide(
+                                                color:
+                                                    isSelected
+                                                        ? middleBlueColor
+                                                        : Colors.white
+                                                            .withOpacity(0.7),
+                                                width: 1,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              materialTapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              visualDensity:
+                                                  VisualDensity.compact,
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -532,9 +809,12 @@ class _SocialIssuesScreenState extends State<SocialIssuesScreen>
                       controller: _tabController,
                       children: [
                         // Community Issues Tab
-                        _buildIssuesList(complaints, middleBlueColor),
+                        _buildIssuesList(_filteredComplaints, middleBlueColor),
                         // My Issues Tab
-                        _buildMyIssuesList(_myComplaints, middleBlueColor),
+                        _buildMyIssuesList(
+                          _filteredMyComplaints,
+                          middleBlueColor,
+                        ),
                       ],
                     ),
                   ),

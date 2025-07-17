@@ -7,6 +7,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:murir_tin/api.dart';
 import 'package:murir_tin/Models/bus_stop.dart';
+import 'package:murir_tin/RouteSelectionScreen.dart';
+import 'package:murir_tin/DestinationSelectionScreen.dart';
+import 'package:murir_tin/PickupSelectionScreen.dart';
 import 'utils/beautiful_alerts.dart';
 
 class Bookticket extends StatefulWidget {
@@ -31,20 +34,15 @@ class _BookticketState extends State<Bookticket> with TickerProviderStateMixin {
   String? _bookingId;
   bool _isLoading = false;
 
-  List<String> _availableRoutes = [];
-  List<BusStop> _fromStops = [];
-  List<BusStop> _toStops = [];
   String? _selectedRoute;
   BusStop? _selectedFromStop;
   BusStop? _selectedToStop;
-  bool _loadingRoutes = false;
   bool _loadingStops = false;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
-    _loadAvailableRoutes();
   }
 
   void _initializeAnimations() {
@@ -78,89 +76,6 @@ class _BookticketState extends State<Bookticket> with TickerProviderStateMixin {
     fromController.dispose();
     toController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadAvailableRoutes() async {
-    setState(() {
-      _loadingRoutes = true;
-    });
-
-    try {
-      final token = await _getJwtToken();
-      if (token == null) return;
-
-      final response = await http.get(
-        Uri.parse(bus_routes_endpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> routesJson = json.decode(response.body);
-        setState(() {
-          _availableRoutes =
-              routesJson.map((route) {
-                if (route is String) {
-                  return route;
-                } else if (route is Map<String, dynamic>) {
-                  return route['route_id']?.toString() ??
-                      route['name']?.toString() ??
-                      route.toString();
-                } else {
-                  return route.toString();
-                }
-              }).toList();
-        });
-      }
-    } catch (e) {
-      print('Error loading routes: $e');
-      _showErrorDialog('Failed to load routes: ${e.toString()}');
-    } finally {
-      setState(() {
-        _loadingRoutes = false;
-      });
-    }
-  }
-
-  Future<void> _loadBusStops(String routeId) async {
-    setState(() {
-      _loadingStops = true;
-      _fromStops.clear();
-      _toStops.clear();
-      _selectedFromStop = null;
-      _selectedToStop = null;
-    });
-
-    try {
-      final token = await _getJwtToken();
-      if (token == null) return;
-
-      final response = await http.get(
-        Uri.parse('$bus_stops_endpoint/$routeId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> stopsJson = json.decode(response.body);
-        final stops = stopsJson.map((json) => BusStop.fromMap(json)).toList();
-
-        setState(() {
-          _fromStops = List.from(stops);
-          _toStops = List.from(stops);
-        });
-      }
-    } catch (e) {
-      print('Error loading bus stops: $e');
-    } finally {
-      setState(() {
-        _loadingStops = false;
-      });
-    }
   }
 
   void _showErrorDialog(String message) {
@@ -396,7 +311,7 @@ class _BookticketState extends State<Bookticket> with TickerProviderStateMixin {
                                     value:
                                         _selectedRoute ?? "Choose your route",
                                     onTap: () => _showRouteSelectionSheet(),
-                                    isLoading: _loadingRoutes,
+                                    isLoading: false,
                                   ),
 
                                   const SizedBox(height: 20),
@@ -410,8 +325,7 @@ class _BookticketState extends State<Bookticket> with TickerProviderStateMixin {
                                         "Select pickup location",
                                     onTap:
                                         _selectedRoute != null && !_loadingStops
-                                            ? () =>
-                                                _showStopSelectionSheet(true)
+                                            ? () => _showPickupSelection()
                                             : null,
                                     isLoading: _loadingStops,
                                     fallbackController: fromController,
@@ -428,8 +342,7 @@ class _BookticketState extends State<Bookticket> with TickerProviderStateMixin {
                                         "Select destination",
                                     onTap:
                                         _selectedRoute != null && !_loadingStops
-                                            ? () =>
-                                                _showStopSelectionSheet(false)
+                                            ? () => _showDestinationSelection()
                                             : null,
                                     isLoading: _loadingStops,
                                     fallbackController: toController,
@@ -601,344 +514,80 @@ class _BookticketState extends State<Bookticket> with TickerProviderStateMixin {
     );
   }
 
-  // Show route selection bottom sheet
-  void _showRouteSelectionSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder:
-          (context) => DraggableScrollableSheet(
-            initialChildSize: 0.6,
-            maxChildSize: 0.9,
-            minChildSize: 0.3,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Handle bar
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF4B6EAF,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.route,
-                              color: Color(0xFF4B6EAF),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            "Select Route",
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF14213D),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(height: 1),
-
-                    // Route list
-                    Expanded(
-                      child:
-                          _loadingRoutes
-                              ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF4B6EAF),
-                                ),
-                              )
-                              : ListView.builder(
-                                controller: scrollController,
-                                padding: const EdgeInsets.all(16),
-                                itemCount: _availableRoutes.length,
-                                itemBuilder: (context, index) {
-                                  final route = _availableRoutes[index];
-                                  final isSelected = _selectedRoute == route;
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isSelected
-                                              ? const Color(
-                                                0xFF4B6EAF,
-                                              ).withValues(alpha: 0.1)
-                                              : Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color:
-                                            isSelected
-                                                ? const Color(0xFF4B6EAF)
-                                                : Colors.grey.shade200,
-                                        width: isSelected ? 2 : 1,
-                                      ),
-                                    ),
-                                    child: ListTile(
-                                      leading: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isSelected
-                                                  ? const Color(0xFF4B6EAF)
-                                                  : Colors.grey.shade300,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.directions_bus,
-                                          color:
-                                              isSelected
-                                                  ? Colors.white
-                                                  : Colors.grey.shade600,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        route,
-                                        style: GoogleFonts.poppins(
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                          color:
-                                              isSelected
-                                                  ? const Color(0xFF4B6EAF)
-                                                  : const Color(0xFF14213D),
-                                        ),
-                                      ),
-                                      trailing:
-                                          isSelected
-                                              ? const Icon(
-                                                Icons.check_circle,
-                                                color: Color(0xFF4B6EAF),
-                                              )
-                                              : null,
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedRoute = route;
-                                          _selectedFromStop = null;
-                                          _selectedToStop = null;
-                                        });
-                                        _loadBusStops(route);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+  // Navigate to route selection screen
+  void _showRouteSelectionSheet() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => RouteSelectionScreen(selectedRoute: _selectedRoute),
+      ),
     );
+
+    if (result != null && result is Map<String, dynamic>) {
+      final selectedRoute = result['route'] as String?;
+      final selectedBusStop = result['busStop'] as BusStop?;
+
+      if (selectedRoute != null) {
+        setState(() {
+          _selectedRoute = selectedRoute;
+          _selectedFromStop = selectedBusStop;
+          _selectedToStop = null;
+        });
+
+        // Update text controllers if a bus stop was selected
+        if (selectedBusStop != null) {
+          fromController.text = selectedBusStop.name;
+        }
+      }
+    }
   }
 
-  // Show stop selection bottom sheet
-  void _showStopSelectionSheet(bool isFromStop) {
-    final stops = isFromStop ? _fromStops : _toStops;
-    final selectedStop = isFromStop ? _selectedFromStop : _selectedToStop;
-    final title = isFromStop ? "Select Pickup Location" : "Select Destination";
-    final icon = isFromStop ? Icons.my_location : Icons.location_on;
+  // Navigate to destination selection screen
+  void _showDestinationSelection() async {
+    if (_selectedRoute == null) return;
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder:
-          (context) => DraggableScrollableSheet(
-            initialChildSize: 0.6,
-            maxChildSize: 0.9,
-            minChildSize: 0.3,
-            builder: (context, scrollController) {
-              return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(25),
-                    topRight: Radius.circular(25),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Handle bar
-                    Container(
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(
-                                0xFF4B6EAF,
-                              ).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(icon, color: const Color(0xFF4B6EAF)),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            title,
-                            style: GoogleFonts.poppins(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF14213D),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Divider(height: 1),
-
-                    // Stop list
-                    Expanded(
-                      child:
-                          _loadingStops
-                              ? const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF4B6EAF),
-                                ),
-                              )
-                              : ListView.builder(
-                                controller: scrollController,
-                                padding: const EdgeInsets.all(16),
-                                itemCount: stops.length,
-                                itemBuilder: (context, index) {
-                                  final stop = stops[index];
-                                  final isSelected =
-                                      selectedStop?.name == stop.name;
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isSelected
-                                              ? const Color(
-                                                0xFF4B6EAF,
-                                              ).withValues(alpha: 0.1)
-                                              : Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color:
-                                            isSelected
-                                                ? const Color(0xFF4B6EAF)
-                                                : Colors.grey.shade200,
-                                        width: isSelected ? 2 : 1,
-                                      ),
-                                    ),
-                                    child: ListTile(
-                                      leading: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              isSelected
-                                                  ? const Color(0xFF4B6EAF)
-                                                  : Colors.grey.shade300,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          icon,
-                                          color:
-                                              isSelected
-                                                  ? Colors.white
-                                                  : Colors.grey.shade600,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      title: Text(
-                                        stop.name,
-                                        style: GoogleFonts.poppins(
-                                          fontWeight:
-                                              isSelected
-                                                  ? FontWeight.w600
-                                                  : FontWeight.normal,
-                                          color:
-                                              isSelected
-                                                  ? const Color(0xFF4B6EAF)
-                                                  : const Color(0xFF14213D),
-                                        ),
-                                      ),
-                                      trailing:
-                                          isSelected
-                                              ? const Icon(
-                                                Icons.check_circle,
-                                                color: Color(0xFF4B6EAF),
-                                              )
-                                              : null,
-                                      onTap: () {
-                                        setState(() {
-                                          if (isFromStop) {
-                                            _selectedFromStop = stop;
-                                            fromController.text = stop.name;
-                                          } else {
-                                            _selectedToStop = stop;
-                                            toController.text = stop.name;
-                                          }
-                                        });
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                  );
-                                },
-                              ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => DestinationSelectionScreen(
+              routeId: _selectedRoute!,
+              fromStop: _selectedFromStop,
+              selectedDestination: _selectedToStop,
+            ),
+      ),
     );
+
+    if (result != null && result is BusStop) {
+      setState(() {
+        _selectedToStop = result;
+        toController.text = result.name;
+      });
+    }
+  }
+
+  // Navigate to pickup selection screen
+  void _showPickupSelection() async {
+    if (_selectedRoute == null) return;
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => PickupSelectionScreen(
+              routeId: _selectedRoute!,
+              selectedPickup: _selectedFromStop,
+            ),
+      ),
+    );
+
+    if (result != null && result is BusStop) {
+      setState(() {
+        _selectedFromStop = result;
+        fromController.text = result.name;
+      });
+    }
   }
 
   // Selection tile widget
