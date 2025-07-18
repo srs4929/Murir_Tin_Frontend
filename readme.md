@@ -51,6 +51,10 @@
    ```bash
    git clone https://github.com/your-org/murir-tin.git
    cd murir-tin
+2. **Go to frontend directory**
+   ```bash
+   cd Murir_Tin_Frontend
+
 2. **Install dependencies**
     ```bash
    flutter pub get
