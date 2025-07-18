@@ -68,7 +68,7 @@ SUPABASE_JWT_SECRET=YOUR_SUPABASE_JWT_SECRET
 2. **Clone the repository**
 ```
 git clone https://github.com/srs4929/Murir_Tin_Frontend.git
-cd murir-tin
+
 ```   
 3.. **Go to frontend directory**
 ```
