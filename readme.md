@@ -51,21 +51,38 @@
 ----
 
 ## 🧪 How to Install
+---
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-org/murir-tin.git
-   cd murir-tin
-2. **Go to frontend directory**
-   ```bash
-   cd Murir_Tin_Frontend
 
-2. **Install dependencies**
-    ```bash
-   flutter pub get
-3. **Run the app**    
-    ```bash
-   flutter run
+
+This app requires certain sensitive keys and tokens to run, which should be stored securely in a `.env` file.
+
+1. **Create a `.env` file in the project root with the following content:**
+
+```env
+SUPABASE_URL=YOUR_SUPABASE_URL
+SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
+MAPBOX_ACCESS_TOKEN=YOUR_MAPBOX_ACCESS_TOKEN
+SUPABASE_JWT_SECRET=YOUR_SUPABASE_JWT_SECRET
+```
+2. **Clone the repository**
+```
+git clone https://github.com/srs4929/Murir_Tin_Frontend.git
+cd murir-tin
+```   
+3.. **Go to frontend directory**
+```
+cd Murir_Tin_Frontend-main
+``` 
+4. **Install dependencies**
+```
+flutter pub get
+```
+4. **Run the app**
+```   
+flutter run
+```
+
 
 
 
